@@ -1,0 +1,17 @@
+{
+  "name": "SvF Future – Stavebná fakulta STU",
+  "short_name": "SvF Future",
+  "description": "Termíny, akcie, odbory a pomoc pre budúcich študentov Stavebnej fakulty STU.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#241E5C",
+  "theme_color": "#241E5C",
+  "lang": "sk",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
