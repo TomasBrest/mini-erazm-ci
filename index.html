@@ -360,6 +360,10 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 .pb { height: 10px; border-radius: 5px; background: rgba(255,255,255,.12); overflow: hidden; }
 .pb i { display: block; height: 100%; width: 0; border-radius: 5px; background: rgba(255,255,255,.45); transition: width 1s cubic-bezier(.2,.8,.2,1); }
 .pr.top .pb i { background: linear-gradient(90deg, var(--or2), var(--or)); }
+
+.dots { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 4px; background: #DDD3C7; transition: all .3s; }
+.dots i.on { width: 22px; background: var(--or); }
 </style>
 </head>
 <body>
@@ -559,7 +563,7 @@ function icsDownload(it, alarms = ['-P1D']) {
 /* ================= Fotky podľa názvu (záloha, ak v databáze chýbajú) ================= */
 const DEFAULT_IMG = {
   'uvod do studia': 'img/ev-uvod.jpg', 'dvojbodka stavbarovica': 'img/ev-dvojbodka.jpg', 'sportovy den': 'img/ev-sport.jpg',
-  'kviz movie night': 'img/ev-kviz.jpg', 'kvapka krvi': 'img/ev-krv.jpg', 'mikulassky punc': 'img/ev-punc.jpg',
+  'kviz movie night': 'img/ev-kviz.jpg', 'kviz': 'img/ev-kviz.jpg', 'movie night': 'img/ev-movie.jpg', 'kvapka krvi': 'img/ev-krv.jpg', 'mikulassky punc': 'img/ev-punc.jpg',
   'stromceky': 'img/ev-stromceky.jpg', 'stavbarsky ples': 'img/ev-ples.jpg', 'your knowledge vikend': 'img/ev-yk.jpg', 'yk': 'img/ev-yk.jpg',
   'uzavierka prihlasok': 'img/ev-uzavierka.jpg', 'den otvorenych dveri svf': 'img/ev-dod.jpg', 'tomas': 'img/buddy-tomas.jpg'
 };
@@ -786,11 +790,34 @@ function viewPrograms() {
     <div class="progs">${PROGS.map(p => `<button class="prog" data-p="${p.k}" style="background-image:url('img/p-${p.k}.jpg')"><span class="e">${p.e}</span><b>${esc(p.n)}</b><span>${esc(p.kw.join(' · '))}</span></button>`).join('')}</div>
   </div>
   <div class="sec"><div class="sec-h"><h2>Štúdium nie je len o učení</h2></div>
-    <div class="life">${LIFE.map(l => `<div class="card lc"><div class="im" style="background-image:url('img/${l.img}.jpg')"></div><div class="tx"><b>${esc(l.t)}</b><p>${esc(l.d)}</p></div></div>`).join('')}</div>
+    <div class="life" id="lifeCar">${LIFE.map(l => `<div class="card lc"><div class="im" style="background-image:url('img/${l.img}.jpg')"></div><div class="tx"><b>${esc(l.t)}</b><p>${esc(l.d)}</p></div></div>`).join('')}</div>
+    <div class="dots" id="lifeDots">${LIFE.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div>
   </div>
   <div class="foot">Viac o programoch na <a href="https://www.svf.stuba.sk" target="_blank" rel="noopener">svf.stuba.sk</a></div>`;
 }
+let carTimer = null;
+function autoCarousel(el, dots, ms = 3500) {
+  clearInterval(carTimer);
+  if (!el) return;
+  const cards = [...el.children];
+  let i = 0, pausedUntil = 0;
+  const pad = () => parseInt(getComputedStyle(el).paddingLeft) || 0;
+  const nearest = () => cards.reduce((b, c, k) => Math.abs(c.offsetLeft - pad() - el.scrollLeft) < Math.abs(cards[b].offsetLeft - pad() - el.scrollLeft) ? k : b, 0);
+  const mark = k => dots && [...dots.children].forEach((d, j) => d.classList.toggle('on', j === k));
+  el.addEventListener('scroll', () => { clearTimeout(el._st); el._st = setTimeout(() => { i = nearest(); mark(i); }, 80); }, { passive: true });
+  const hold = () => { pausedUntil = Date.now() + 6000; };
+  el.addEventListener('touchstart', hold, { passive: true });
+  el.addEventListener('mousedown', hold);
+  carTimer = setInterval(() => {
+    if (!document.body.contains(el)) return clearInterval(carTimer);
+    if (Date.now() < pausedUntil || document.hidden) return;
+    i = (i + 1) % cards.length;
+    el.scrollTo({ left: cards[i].offsetLeft - pad(), behavior: 'smooth' });
+    mark(i);
+  }, ms);
+}
 bind.programs = () => {
+  autoCarousel($('#lifeCar'), $('#lifeDots'));
   $('#quizCta').onclick = openQuiz;
   document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => openProgram(b.dataset.p));
 };

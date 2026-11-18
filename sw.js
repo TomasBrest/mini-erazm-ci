@@ -1,5 +1,5 @@
 // SvF Future – offline cache a push notifikácie
-const VERSION = 'svf-future-v10';
+const VERSION = 'svf-future-v13';
 const SHELL = ['./', './index.html', './manifest.json', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png',
   './img/hero.jpg', './img/p-psa.jpg', './img/p-ikds.jpg', './img/p-vsvh.jpg', './img/p-geo.jpg', './img/p-kraj.jpg', './img/p-mpm.jpg', './img/p-tms.jpg', './img/p-civil.jpg',
   './img/l-zs.jpg', './img/l-sport.jpg', './img/l-bratislava.jpg', './img/l-lab.jpg', './img/l-prax.jpg', './img/l-priestory.jpg',
@@ -16,10 +16,22 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  const same = url.origin === self.location.origin;
   const supaImg = url.hostname.endsWith('.supabase.co') && url.pathname.includes('/storage/v1/object/public/');
-  if (url.origin !== self.location.origin && !LIBS.includes(url.hostname) && !supaImg) return;
+  if (!same && !LIBS.includes(url.hostname) && !supaImg) return;
+
+  // Stránka a skripty: vždy najprv internet (nová verzia hneď), bez internetu z pamäte
+  const isPage = req.mode === 'navigate' || (same && /\.(html|js|json)$|\/$/.test(url.pathname));
+  if (isPage) {
+    e.respondWith(fetch(req, { cache: 'no-store' }).then(res => {
+      if (res.ok) caches.open(VERSION).then(c => c.put(req, res.clone()));
+      return res;
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html'))));
+    return;
+  }
+  // Obrázky a knižnice: z pamäte, na pozadí sa aktualizujú
   e.respondWith(caches.open(VERSION).then(async c => {
-    const hit = await c.match(req, { ignoreSearch: url.origin === self.location.origin });
+    const hit = await c.match(req);
     const net = fetch(req).then(res => { if (res.ok || res.type === 'opaque') c.put(req, res.clone()); return res; }).catch(() => hit);
     return hit || net;
   }));
