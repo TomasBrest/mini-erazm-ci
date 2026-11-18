@@ -1115,7 +1115,8 @@ async function admPanel() {
         <div><b>${esc(i.title || '(bez názvu)')}</b><span>${esc([i.starts_at ? fmtDate(i) : '', i.published ? '' : '🙈 skryté'].filter(Boolean).join(' · '))}</span></div>
         <div class="ed"><button data-e="${i.id}">✏️</button><button data-d="${i.id}">🗑</button></div></div>`).join('') || '<p class="muted">Zatiaľ nič.</p>'}`;
   } else if (admTab === 'run') {
-    body = await runAdminHtml();
+    const chk = await sb.from('erasmus_run_state').select('id').limit(1);
+    body = dbMissing(chk.error) ? `<div class="card qcard" style="margin-top:14px"><div class="q">🚧 Tabuľky pre hry ešte neexistujú</div><p class="muted">V Supabase → SQL Editor spusti celý súbor <b>supabase-erasmus-run.sql</b> a potom sa sem vráť.</p></div>` : await runAdminHtml();
   } else if (admTab === 'questions') {
     body = admQs.map(q => `<div class="card qcard"><div class="q">${esc(q.question)}</div><div class="t">${new Date(q.created_at).toLocaleString('sk-SK')} ${q.is_public ? '· ✅ zverejnené' : q.answer ? '· uložené, nezverejnené' : '· 🆕 bez odpovede'}</div>
       <textarea data-qa="${q.id}" placeholder="Tvoja odpoveď…">${esc(q.answer || '')}</textarea>
@@ -1147,7 +1148,7 @@ async function admPanel() {
     const ng = $('#nGo'); if (ng) ng.onclick = async () => { const r = await sendPush($('#nT').value.trim(), $('#nB').value.trim()); $('#nErr').textContent = r; };
     const ad = $('#adGo'); if (ad) ad.onclick = async () => { const { error } = await sb.rpc('erasmus_add_admin', { p_email: $('#adE').value }); $('#adErr').textContent = error ? error.message : '✅ Pridaný'; if (!error) admPanel(); };
     const ao = $('#aOut'); if (ao) ao.onclick = admLogout;
-    if (admTab === 'run') runAdminBind();
+    if (admTab === 'run' && $('#rsHost')) runAdminBind();
   });
 }
 async function sendPush(title, body) {

@@ -167,6 +167,8 @@ function runUnlocked() {
 }
 const dayRound = d => d + 1;
 const roundDay = r => r - 1;
+function dbMissing(e) { return !!e && (e.code === 'PGRST205' || e.code === '42P01' || /does not exist|schema cache|Could not find the table/i.test(e.message || '')); }
+const NO_DB_MSG = 'Hra ešte nie je nastavená v databáze – organizátor musí v Supabase spustiť súbor supabase-erasmus-run.sql.';
 const liveOn = () => runState && runState.status && runState.status !== 'off';
 const pidxOf = (r, q) => (r - 1) * 5 + q;
 const promptOf = (r, q) => (window.RUN_PROMPTS[pidxOf(r, q)] || { p: '?' }).p;
@@ -180,7 +182,11 @@ async function openRunInner() {
   $('#run').classList.add('show'); document.body.style.overflow = 'hidden';
   runView = 'home'; runAll = null;
   $('#run').innerHTML = `<div class="rw">${rhead()}<div class="crane">🏗️</div><p style="text-align:center;opacity:.7">Načítavam…</p></div>`; bindHead();
-  try { await Promise.all([runLoadState(), runLoadExtra(), runLoadMine()]); } catch (_) { toast('Hra potrebuje internet'); }
+  try {
+    const { error } = await sb.from('erasmus_run_state').select('id').limit(1);
+    if (dbMissing(error)) { $('#run').innerHTML = `<div class="rw">${rhead()}<div class="crane">🚧</div><div class="rcard" style="text-align:center"><h3>Ešte sa stavia…</h3><p>${NO_DB_MSG}</p></div></div>`; bindHead(); return; }
+    await Promise.all([runLoadState(), runLoadExtra(), runLoadMine()]);
+  } catch (_) { toast('Hra potrebuje internet'); }
   runView = runMode === 'live' ? 'live' : 'home';
   drawRun();
   clearInterval(runPoll);
@@ -300,7 +306,7 @@ async function drawHome() {
     box.innerHTML = board.length ? board.slice(0, 15).map((p, i) => `<div class="${i < 3 ? 'p' + (i + 1) : ''} ${p.pid === runPid ? 'me' : ''}"><span class="n">${i + 1}</span><b>${esc(p.nick)}</b><em>${meters(p.total)}</em></div>`).join('')
       + (board.findIndex(p => p.pid === runPid) >= 15 ? `<div class="me"><span class="n">${board.findIndex(p => p.pid === runPid) + 1}</span><b>${esc(runNick)}</b><em>${meters(board.find(p => p.pid === runPid).total)}</em></div>` : '')
       : '<div style="opacity:.6">Zatiaľ nikto nekopal. Buď prvý! ⛏</div>';
-  } catch (_) { const box = $('#rLb'); if (box) box.innerHTML = '<div style="opacity:.6">Rebríček potrebuje internet.</div>'; }
+  } catch (e) { const box = $('#rLb'); if (box) box.innerHTML = `<div style="opacity:.6">${dbMissing(e) ? NO_DB_MSG : 'Rebríček sa nepodarilo načítať – skontroluj internet.'}</div>`; }
 }
 
 /* ---------------- Hranie kola ---------------- */
@@ -618,7 +624,8 @@ async function runAdminHtml() {
     <p class="muted">Denná hra · 245 výziev · každý deň sa odomkne nové kolo s 5 výzvami.</p>
     <div class="card arow"><div class="th">📅</div><div><b>${st.start_date ? 'Deň 1: ' + new Date(st.start_date + 'T00:00').toLocaleDateString('sk-SK') : 'VÝKOP ešte nie je spustený'}</b><span>Odomknuté dni: ${runUnlocked()} · hráčov: ${new Set(daily.map(x => x.player_id)).size} · odpovedí: ${daily.length}</span></div></div>
     <label>Dátum, kedy začína deň 1</label><input type="date" id="rsD" value="${st.start_date || todayStr()}">
-    <button class="btn ink full" id="rsSave" style="margin-top:10px">Uložiť dátum štartu</button>
+    <div class="two" style="margin-top:10px"><div><button class="btn ink full" id="rsSave">Uložiť dátum štartu</button></div><div><button class="btn line full" id="rsWipeVyk">🧪 Vymazať test VÝKOPU</button></div></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">Tip na test: nastav dátum na pár dní dozadu – odomkne sa toľko dní, koľko dní ubehlo. Po teste daj „Vymazať test VÝKOPU“ a nastav skutočný dátum štartu.</p>
     <h2 style="margin-top:26px;font-size:22px">Neuznané odpovede (${list.length})</h2>
     <p class="muted" style="font-size:13px">Odpovede, ktoré hra nepoznala. Ak sú správne, uznaj ich – body sa všetkým prepočítajú.</p>
     ${list.map(u => `<div class="card qcard"><div class="t">${esc(window.RUN_PROMPTS[u.pi].p)} · ${u.live ? 'Erasmus Run' : 'VÝKOP deň ' + (Math.floor(u.pi / 5))}</div><div class="q" style="font-size:17px;margin-top:4px">„${esc(u.text)}“ ${u.n > 1 ? `<span class="muted">×${u.n}</span>` : ''}</div>
@@ -629,6 +636,11 @@ function runAdminBind() {
   const on = (id, fn) => { const e = $(id); if (e) e.onclick = fn; };
   on('#rsSave', async () => { const d = $('#rsD').value; const { error } = await sb.from('erasmus_run_state').update({ start_date: d || null, updated_at: new Date().toISOString() }).eq('id', 1); toast(error ? 'Chyba: ' + error.message : 'Uložené ✅'); admPanel(); });
   on('#rsHost', openHost);
+  on('#rsWipeVyk', async () => {
+    if (!confirm('Vymazať všetky odpovede VÝKOPU (napr. po teste)?')) return;
+    await sb.from('erasmus_run_answers').delete().gte('round', 2);
+    toast('Odpovede VÝKOPU vymazané'); admPanel();
+  });
   on('#rsWipeLive', async () => {
     if (!confirm('Vymazať odpovede a hráčov Erasmus Run? (napr. po skúšobnej hre)')) return;
     await sb.from('erasmus_run_answers').delete().eq('round', LIVE_ROUND); await sb.from('erasmus_run_join').delete().eq('round', LIVE_ROUND);
