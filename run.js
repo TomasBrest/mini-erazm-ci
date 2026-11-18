@@ -10,12 +10,16 @@ const TIER_NAME = ['Povrch', 'Základy', 'Skalné podložie'];
 const TIER_DESC = ['bežná odpoveď', 'menej známa odpoveď', 'vzácna odpoveď 💎'];
 const TIER_SQ = ['🟫', '🟧', '💎'];
 const RUN_URL = APP_URL + '?run';
+const VYK_URL = APP_URL + '?vykop';
 
 let RUN_EXTRA = {};
 let runState = null;
 let runMine = {};
 let runAll = null;
 let runView = 'home';
+let runMode = 'live'; // 'live' = Erasmus Run naživo, 'daily' = VÝKOP
+const LIVE_ROUND = 1;
+const DAYS = 49; // VÝKOP: deň d = kolo d+1 (výzvy 6–250)
 let runPoll = null, runTick = null;
 let runNick = LS.get('erasmus.run.nick', '');
 let runPid = LS.get('erasmus.run.pid', null);
@@ -159,21 +163,25 @@ function todayStr(d = new Date()) { return d.getFullYear() + '-' + String(d.getM
 function runUnlocked() {
   if (!runState || !runState.start_date) return 0;
   const a = new Date(runState.start_date + 'T00:00:00'), b = new Date(todayStr() + 'T00:00:00');
-  return Math.max(0, Math.min(50, Math.round((b - a) / 864e5) + 1));
+  return Math.max(0, Math.min(DAYS, Math.round((b - a) / 864e5) + 1));
 }
+const dayRound = d => d + 1;
+const roundDay = r => r - 1;
 const liveOn = () => runState && runState.status && runState.status !== 'off';
 const pidxOf = (r, q) => (r - 1) * 5 + q;
 const promptOf = (r, q) => (window.RUN_PROMPTS[pidxOf(r, q)] || { p: '?' }).p;
 const meters = n => `${n} m`;
 
 /* ---------------- Otvorenie / zatvorenie ---------------- */
-async function openRun() {
+function openVykop() { runMode = 'daily'; return openRunInner(); }
+function openRun() { runMode = 'live'; return openRunInner(); }
+async function openRunInner() {
   closeSheet && closeSheet();
   $('#run').classList.add('show'); document.body.style.overflow = 'hidden';
   runView = 'home'; runAll = null;
   $('#run').innerHTML = `<div class="rw">${rhead()}<div class="crane">🏗️</div><p style="text-align:center;opacity:.7">Načítavam…</p></div>`; bindHead();
   try { await Promise.all([runLoadState(), runLoadExtra(), runLoadMine()]); } catch (_) { toast('Hra potrebuje internet'); }
-  if (liveOn()) runView = 'live';
+  runView = runMode === 'live' ? 'live' : 'home';
   drawRun();
   clearInterval(runPoll);
   runPoll = setInterval(async () => {
@@ -181,8 +189,7 @@ async function openRun() {
     const key = s => s ? [s.status, s.round, s.q, s.started_at, s.start_date].join('|') : '';
     const before = key(runState); await runLoadState(); const after = key(runState);
     if (before !== after) {
-      if (liveOn() && (runView === 'home' || runView === 'live')) { runView = 'live'; drawRun(); }
-      else if (!liveOn() && runView === 'live') { runView = 'home'; runAll = null; await runLoadMine(); drawRun(); }
+      if (runMode === 'live') { if (!liveOn()) await runLoadMine(); runView = 'live'; drawRun(); }
       else if (runView === 'home') drawRun();
     }
   }, 1500);
@@ -190,11 +197,12 @@ async function openRun() {
 function closeRun() {
   $('#run').classList.remove('show'); document.body.style.overflow = '';
   clearInterval(runPoll); clearInterval(runTick); runPoll = runTick = null;
-  if (/[?&]run/.test(location.search)) history.replaceState(null, '', APP_URL);
+  if (/[?&](run|vykop)/.test(location.search)) history.replaceState(null, '', APP_URL);
 }
 function rhead() {
+  const logo = runMode === 'live' ? `ERASMUS <em>RUN</em><small>Hra naživo · Mini Erasmus</small>` : `VÝ<em>KOP</em><small>Denná stavbárska hra</small>`;
   return `<div class="hz"></div><div class="rtop"><button class="x" id="rx">✕</button>
-    <div class="rlogo">ERASMUS <em>RUN</em><small>Stavbárska denná hra</small></div>
+    <div class="rlogo">${logo}</div>
     ${runNick ? `<button class="rnick" id="rnk">👷 ${esc(runNick)}</button>` : ''}</div>`;
 }
 function bindHead() {
@@ -203,16 +211,16 @@ function bindHead() {
 }
 function rulesHtml() {
   return `<div class="rcard"><h3>Ako sa hrá</h3>
-    <p>Dostaneš výzvu, napríklad „Stavebný stroj“. Napíš odpoveď, ktorá k nej sedí. <b>Čím vzácnejšia odpoveď, tým hlbšie kopeš.</b> Keď tvoju odpoveď nenapíše nikto iný, dostaneš bonus. Každý deň sa odomkne nové kolo s 5 výzvami.</p>
+    <p>Dostaneš výzvu, napríklad „Stavebný stroj“. Napíš odpoveď, ktorá k nej sedí. <b>Čím vzácnejšia odpoveď, tým hlbšie kopeš.</b> Keď tvoju odpoveď nenapíše nikto iný, dostaneš bonus. ${runMode === 'live' ? 'Hráme naživo – výzvy uvidíš na projektore aj v mobile.' : 'Každý deň sa odomkne nové kolo s 5 výzvami.'}</p>
     <div class="rules"><div class="t0"><b>${RUN_TIER_M[0]} m</b>bežná</div><div class="t1"><b>${RUN_TIER_M[1]} m</b>menej známa</div><div class="t2"><b>${RUN_TIER_M[2]} m</b>vzácna 💎</div></div>
-    <p style="margin-top:10px;font-size:13px">⭐ +${RUN_UNIQUE} m, ak odpoveď máš len ty · ⏱ ${RUN_SECS} s na výzvu · preklepy a diakritika nevadia</p></div>`;
+    <p style="margin-top:10px;font-size:13px">⭐ +${RUN_UNIQUE} m, ak odpoveď máš len ty · ⏱ ${runMode === 'live' ? 'čas určuje projektor' : RUN_SECS + ' s na výzvu'} · preklepy a diakritika nevadia</p></div>`;
 }
 function drawRun() {
   clearInterval(runTick);
   if (!runNick) return drawNick();
   if (runView === 'play') return drawPlay();
   if (runView === 'sum') return drawSum();
-  if (runView === 'live' && liveOn()) return drawLive();
+  if (runMode === 'live') return liveOn() ? drawLive() : drawLiveWait();
   runView = 'home'; drawHome();
 }
 
@@ -223,8 +231,25 @@ function drawNick() {
     <input class="rinp" id="rnI" maxlength="20" placeholder="napr. Betónový Jano" autocomplete="off">
     <button class="rbtn" id="rnGo">Ide sa kopať ⛏</button></div>${rulesHtml()}</div>`;
   bindHead();
-  const go = () => { const v = $('#rnI').value.trim(); if (!v) return toast('Napíš prezývku 🙂'); runNick = v.slice(0, 20); LS.set('erasmus.run.nick', runNick); if (liveOn()) runView = 'live'; drawRun(); };
+  const go = () => { const v = $('#rnI').value.trim(); if (!v) return toast('Napíš prezývku 🙂'); runNick = v.slice(0, 20); LS.set('erasmus.run.nick', runNick); drawRun(); };
   $('#rnGo').onclick = go; $('#rnI').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+
+/* ---------------- Erasmus Run – čakanie / výsledky ---------------- */
+async function drawLiveWait() {
+  let board = [], rows = [];
+  try { await runLoadExtra(); rows = await runFetch(q => q.eq('round', LIVE_ROUND)); board = runScore(rows); } catch (_) {}
+  const place = board.findIndex(p => p.pid === runPid) + 1, me = board.find(p => p.pid === runPid);
+  $('#run').innerHTML = `<div class="rw">${rhead()}
+    ${board.length ? `<div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Výsledky Erasmus Run</div>
+        ${me ? `<div class="bigm">${me.total} m</div><p>${place}. miesto z ${board.length}</p>` : '<p>Tentoraz si nehral(a).</p>'}</div>
+      <div class="rcard"><h3>Rebríček</h3><div class="lb">${board.slice(0, 20).map((p, i) => `<div class="${i < 3 ? 'p' + (i + 1) : ''} ${p.pid === runPid ? 'me' : ''}"><span class="n">${i + 1}</span><b>${esc(p.nick)}</b><em>${meters(p.total)}</em></div>`).join('')}</div></div>`
+    : `<div class="crane">🏗️</div><div class="rcard" style="text-align:center"><h3>Hráme naživo na Mini Erasme</h3>
+        <p>Keď organizátor spustí hru, objaví sa tu sama – nechaj túto obrazovku otvorenú. Výzvy uvidíš na projektore aj v mobile.</p></div>`}
+    <div class="rcard"><h3>Chceš kopať každý deň?</h3><p>Zahraj si dennú hru VÝKOP – každý deň 5 nových výziev a rebríček.</p><button class="rbtn alt" id="toVyk">⛏️ Hrať VÝKOP</button></div>
+    ${rulesHtml()}</div>`;
+  bindHead();
+  $('#toVyk').onclick = () => { runMode = 'daily'; runView = 'home'; runAll = null; drawRun(); };
 }
 
 /* ---------------- Domov hry ---------------- */
@@ -233,33 +258,34 @@ async function drawHome() {
   const U = runUnlocked();
   const mineDone = r => Object.keys(runMine[r] || {}).length;
   let today = '';
+  const UR = dayRound(U);
   if (!U) {
-    today = `<div class="rcard"><div class="crane">🚧</div><h3 style="text-align:center">Štartujeme spolu na Mini Erasme</h3>
-      <p style="text-align:center">Prvé kolo zahráme naživo s projektorom. Potom sa ti každý deň odomkne nové kolo s 5 výzvami – spolu ich je 250.</p></div>`;
+    today = `<div class="rcard"><div class="crane">🚧</div><h3 style="text-align:center">VÝKOP štartuje už čoskoro</h3>
+      <p style="text-align:center">Každý deň sa ti odomkne nové kolo s 5 výzvami o stavbárstve, škole a stavbách. Zapni si upozornenia, nech ti nič neujde.</p></div>`;
   } else {
-    const d = mineDone(U);
+    const d = mineDone(UR);
     today = d < 5
-      ? `<div class="rcard"><div class="kicker" style="color:#FFC400">Dnešné kolo</div><h3>Kolo ${U} · 5 výziev</h3><p>${d ? `Máš hotové ${d}/5 – pokračuj!` : `${RUN_SECS} sekúnd na každú výzvu. Kopeme!`}</p>
+      ? `<div class="rcard"><div class="kicker" style="color:#FFC400">Dnešné kolo</div><h3>Deň ${U} · 5 výziev</h3><p>${d ? `Máš hotové ${d}/5 – pokračuj!` : `${RUN_SECS} sekúnd na každú výzvu. Kopeme!`}</p>
          <button class="rbtn" id="rPlay">${d ? 'Pokračovať' : 'Začať kopať'} ⛏</button></div>`
-      : `<div class="rcard"><div class="kicker" style="color:#FFC400">Dnešné kolo hotové ✅</div><h3>Kolo ${U}</h3>
+      : `<div class="rcard"><div class="kicker" style="color:#FFC400">Dnešné kolo hotové ✅</div><h3>Deň ${U}</h3>
          <p>Ďalšie kolo sa odomkne o <b id="rNext">–</b></p><button class="rbtn alt" id="rSum">Pozrieť výsledky</button></div>`;
   }
-  const maxShow = Math.min(50, Math.max(U + 4, 5));
-  const grid = U ? `<div class="rcard"><h3>Kolá</h3><p>Zmeškané kolá si môžeš dohrať kedykoľvek.</p><div class="rounds">${Array.from({ length: maxShow }, (_, i) => {
-    const r = i + 1, done = mineDone(r) >= 5, lock = r > U;
-    return `<button data-r="${r}" class="${lock ? 'lock' : done ? 'done' : r === U ? 'today' : ''}" ${lock ? 'disabled' : ''}>${lock ? '🔒' : r}<small>${lock ? '' : done ? '✓' : r === U ? 'dnes' : ''}</small></button>`;
+  const maxShow = Math.min(DAYS, Math.max(U + 4, 5));
+  const grid = U ? `<div class="rcard"><h3>Dni</h3><p>Zmeškané dni si môžeš dohrať kedykoľvek.</p><div class="rounds">${Array.from({ length: maxShow }, (_, i) => {
+    const dd = i + 1, r = dayRound(dd), done = mineDone(r) >= 5, lock = dd > U;
+    return `<button data-r="${r}" class="${lock ? 'lock' : done ? 'done' : dd === U ? 'today' : ''}" ${lock ? 'disabled' : ''}>${lock ? '🔒' : dd}<small>${lock ? '' : done ? '✓' : dd === U ? 'dnes' : ''}</small></button>`;
   }).join('')}</div></div>` : '';
   $('#run').innerHTML = `<div class="rw">${rhead()}
-    ${liveOn() ? `<button class="live-b" id="rLive"><i></i><div><b>Hra naživo práve beží!</b><span>Ťukni a pripoj sa ku kolu ${runState.round}</span></div></button>` : ''}
+    ${liveOn() ? `<button class="live-b" id="rLive"><i></i><div><b>Erasmus Run práve beží naživo!</b><span>Ťukni a pripoj sa</span></div></button>` : ''}
     ${today}${grid}
     <div class="rcard"><h3>Rebríček</h3>
-      <div class="rseg"><button data-lb="today" class="${lbTab === 'today' ? 'on' : ''}">${U ? 'Kolo ' + U : 'Dnes'}</button><button data-lb="all" class="${lbTab === 'all' ? 'on' : ''}">Celkovo</button></div>
+      <div class="rseg"><button data-lb="today" class="${lbTab === 'today' ? 'on' : ''}">${U ? 'Deň ' + U : 'Dnes'}</button><button data-lb="all" class="${lbTab === 'all' ? 'on' : ''}">Celkovo</button></div>
       <div class="lb" id="rLb"><div style="opacity:.6">Načítavam…</div></div></div>
     ${rulesHtml()}</div>`;
   bindHead();
-  const p = $('#rPlay'); if (p) p.onclick = () => startRound(U);
-  const s = $('#rSum'); if (s) s.onclick = () => { runView = 'sum'; sumRound = U; drawRun(); };
-  const l = $('#rLive'); if (l) l.onclick = () => { runView = 'live'; drawRun(); };
+  const p = $('#rPlay'); if (p) p.onclick = () => startRound(UR);
+  const s = $('#rSum'); if (s) s.onclick = () => { runView = 'sum'; sumRound = UR; drawRun(); };
+  const l = $('#rLive'); if (l) l.onclick = () => { runMode = 'live'; runView = 'live'; drawRun(); };
   document.querySelectorAll('#run [data-r]').forEach(b => b.onclick = () => {
     const r = +b.dataset.r; if (mineDone(r) >= 5) { runView = 'sum'; sumRound = r; drawRun(); } else startRound(r);
   });
@@ -268,7 +294,7 @@ async function drawHome() {
   if (nx) { const t = () => { const d = new Date(); d.setHours(24, 0, 0, 0); let ms = d - Date.now(); const h = Math.floor(ms / 36e5); ms -= h * 36e5; const m = Math.floor(ms / 6e4); const s2 = Math.floor((ms - m * 6e4) / 1000); nx.textContent = `${h} h ${String(m).padStart(2, '0')} min ${String(s2).padStart(2, '0')} s`; }; t(); runTick = setInterval(t, 1000); }
   try {
     if (!runAll) { await runLoadExtra(); runAll = await runFetch(); }
-    const rows = lbTab === 'today' && U ? runAll.filter(r => r.round === U) : runAll.slice();
+    const rows = lbTab === 'today' && U ? runAll.filter(r => r.round === UR) : runAll.filter(r => r.round !== LIVE_ROUND);
     const board = runScore(rows.map(r => ({ ...r })));
     const box = $('#rLb'); if (!box) return;
     box.innerHTML = board.length ? board.slice(0, 15).map((p, i) => `<div class="${i < 3 ? 'p' + (i + 1) : ''} ${p.pid === runPid ? 'me' : ''}"><span class="n">${i + 1}</span><b>${esc(p.nick)}</b><em>${meters(p.total)}</em></div>`).join('')
@@ -307,7 +333,7 @@ function drawPlay() {
   const dots = Array.from({ length: 5 }, (_, i) => `<i style="flex:1;height:6px;border-radius:3px;background:${i < q || (i === q && playRes) ? '#FFC400' : 'rgba(255,255,255,.15)'}"></i>`).join('');
   $('#run').innerHTML = `<div class="rw">${rhead()}
     <div style="display:flex;gap:6px">${dots}</div>
-    <div class="pq"><div class="k">KOLO ${r} · VÝZVA ${q + 1}/5</div><h2>${esc(promptOf(r, q))}</h2></div>
+    <div class="pq"><div class="k">DEŇ ${roundDay(r)} · VÝZVA ${q + 1}/5</div><h2>${esc(promptOf(r, q))}</h2></div>
     ${playRes ? `${digHtml(playRes, playRes.valid ? RUN_TIER_M[playRes.tier] : 0)}${verdictHtml(playRes)}
       <button class="rbtn" id="rNextQ">${nextQ(r) == null ? 'Výsledky kola 🏁' : 'Ďalšia výzva →'}</button>`
     : `<input class="rinp" id="rAns" maxlength="60" placeholder="Tvoja odpoveď…" autocomplete="off" autocapitalize="off" enterkeyhint="go">
@@ -356,19 +382,19 @@ async function drawSum() {
   const place = board.findIndex(p => p.pid === runPid) + 1;
   const sq = my.map(x => x._j.valid ? TIER_SQ[x._j.tier] + (x._uni ? '⭐' : '') : '⬜').join(' ');
   $('#run').innerHTML = `<div class="rw">${rhead()}
-    <div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Kolo ${r} · výsledok</div>
+    <div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Deň ${roundDay(r)} · výsledok</div>
       <div class="bigm">${total} m</div><p>${place ? `${place}. miesto z ${board.length}` : ''}</p>
       <div style="font-size:26px;margin-top:8px;letter-spacing:4px">${sq}</div>
       <button class="rbtn" id="rShare">📤 Zdieľať výsledok</button></div>
     <div class="rcard">${my.map(x => `<div class="sumrow"><span class="sq ${x._j.valid ? 't' + x._j.tier : 'inv'}">${x._j.valid ? (x._uni ? '⭐' : TIER_SQ[x._j.tier]) : '✕'}</span>
       <div class="tx"><span>${esc(promptOf(r, x.q))}</span><b>${esc(x.answer || '— (čas vypršal)')}</b></div><em>${x._pts} m</em></div>`).join('')}</div>
-    <div class="rcard"><h3>Rebríček kola ${r}</h3><div class="lb">${board.slice(0, 15).map((p, i) => `<div class="${i < 3 ? 'p' + (i + 1) : ''} ${p.pid === runPid ? 'me' : ''}"><span class="n">${i + 1}</span><b>${esc(p.nick)}</b><em>${meters(p.total)}</em></div>`).join('')}</div></div>
+    <div class="rcard"><h3>Rebríček – deň ${roundDay(r)}</h3><div class="lb">${board.slice(0, 15).map((p, i) => `<div class="${i < 3 ? 'p' + (i + 1) : ''} ${p.pid === runPid ? 'me' : ''}"><span class="n">${i + 1}</span><b>${esc(p.nick)}</b><em>${meters(p.total)}</em></div>`).join('')}</div></div>
     <button class="rbtn alt" id="rBack">← Späť</button></div>`;
   bindHead();
   if (total >= 40) confetti();
   $('#rBack').onclick = () => { runView = 'home'; runAll = null; drawRun(); };
   $('#rShare').onclick = async () => {
-    const text = `Erasmus Run · Kolo ${r} ⛏ ${total} m\n${sq}\nZahraj si aj ty 👉 ${RUN_URL}`;
+    const text = `VÝKOP · Deň ${roundDay(r)} ⛏ ${total} m\n${sq}\nZahraj si aj ty 👉 ${VYK_URL}`;
     if (navigator.share) { try { await navigator.share({ text }); } catch (_) {} }
     else { try { await navigator.clipboard.writeText(text); toast('Skopírované 📋'); } catch (_) {} }
   };
@@ -378,14 +404,11 @@ async function drawSum() {
 const liveSeen = {};
 async function drawLive() {
   const st = runState, r = st.round;
-  if (!LS.get('erasmus.run.joined.' + r, false)) {
-    LS.set('erasmus.run.joined.' + r, true);
-    sb.from('erasmus_run_join').insert({ round: r, player_id: runPid, nickname: runNick }).then(() => {});
-  }
+  if (st.status === 'lobby' || st.status === 'question') sb.from('erasmus_run_join').insert({ round: r, player_id: runPid, nickname: runNick }).then(() => {});
   let body = '';
   const answered = runMine[r] && st.q in runMine[r];
   if (st.status === 'lobby') {
-    body = `<div class="crane">🏗️</div><div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Kolo ${r} · naživo</div>
+    body = `<div class="crane">🏗️</div><div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Erasmus Run · naživo</div>
       <h3>Si v hre ako ${esc(runNick)} 👷</h3><p>Pozri na projektor – hra sa začne každú chvíľu.</p></div>${rulesHtml()}`;
   } else if (st.status === 'question') {
     if (answered) {
@@ -403,10 +426,10 @@ async function drawLive() {
     const mineQ = rows.find(x => x.player_id === runPid && x.q === st.q);
     const place = board.findIndex(p => p.pid === runPid) + 1, me = board.find(p => p.pid === runPid);
     if (st.status === 'final') {
-      body = `<div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Koniec kola ${r}</div>
+      body = `<div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Koniec Erasmus Run</div>
         <div style="font-size:64px">${place === 1 ? '🏆' : place === 2 ? '🥈' : place === 3 ? '🥉' : '⛏️'}</div>
         <div class="bigm">${me ? me.total : 0} m</div><p>${place ? `${place}. miesto z ${board.length}` : 'Tentoraz bez odpovede'}</p></div>
-        <div class="rcard"><p>Ďalšie kolá sa ti budú odomykať každý deň v tejto appke. Kopeme ďalej! 💪</p></div>`;
+        <div class="rcard"><h3>Kopeme ďalej! 💪</h3><p>Každý deň ťa čaká 5 nových výziev v dennej hre VÝKOP.</p><button class="rbtn alt" id="toVyk2">⛏️ Hrať VÝKOP</button></div>`;
       if (place && place <= 3) confetti();
     } else {
       const j = mineQ ? mineQ._j : { valid: false, blank: true };
@@ -417,6 +440,7 @@ async function drawLive() {
   }
   $('#run').innerHTML = `<div class="rw">${rhead()}${body}</div>`;
   bindHead(); animateDig();
+  const tv = $('#toVyk2'); if (tv) tv.onclick = () => { runMode = 'daily'; runView = 'home'; runAll = null; drawRun(); };
   const inp = $('#lAns');
   if (inp) {
     const key = r + ':' + st.q + ':' + st.started_at;
@@ -494,12 +518,11 @@ function drawHost(soft) {
   const r = st.round, q = st.q, players = hostPlayers();
   let main = '', foot = '';
   const header = `<div class="hhead"><button class="x" id="hx" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12)">✕</button>
-    <div class="rlogo">ERASMUS <em>RUN</em></div><div class="hz"></div><div style="font-weight:800;font-size:1.6vw">Kolo ${r}</div></div>`;
+    <div class="rlogo">ERASMUS <em>RUN</em></div><div class="hz"></div><div style="font-weight:800;font-size:1.6vw">SvF Future</div></div>`;
   if (st.status === 'off') {
     main = `<div class="hq"><div class="k">STAVBÁRSKA HRA · SVF FUTURE</div><h1>Pripravení kopať? ⛏</h1>
-      <p style="font-size:1.8vw;color:rgba(255,255,255,.75);margin-top:2vh">Vyber kolo a otvor lobby. Študenti sa pripoja cez QR kód.</p></div>`;
-    foot = `<select id="hR">${Array.from({ length: 50 }, (_, i) => `<option value="${i + 1}" ${i + 1 === r ? 'selected' : ''}>Kolo ${i + 1}</option>`).join('')}</select>
-      <select id="hD">${[15, 20, 25, 30, 40].map(d => `<option value="${d}" ${d === (st.duration || 25) ? 'selected' : ''}>${d} s na výzvu</option>`).join('')}</select>
+      <p style="font-size:1.8vw;color:rgba(255,255,255,.75);margin-top:2vh">Otvor lobby – študenti sa pripoja cez QR kód. 5 výziev, kto vykope najhlbšie, vyhráva.</p></div>`;
+    foot = `<select id="hD">${[15, 20, 25, 30, 40].map(d => `<option value="${d}" ${d === (st.duration || 25) ? 'selected' : ''}>${d} s na výzvu</option>`).join('')}</select>
       <button class="go" id="hLobby">Otvoriť lobby →</button>`;
   } else if (st.status === 'lobby') {
     main = `<div class="hlobby"><div class="hqr">${qrSvg(RUN_URL)}</div><div class="hjoin">
@@ -536,7 +559,7 @@ function drawHost(soft) {
       foot = q < 4 ? `<button class="go" id="hNext">Ďalšia výzva ▶</button>` : `<button class="go" id="hFinal">🏆 Finále</button>`;
     } else {
       const [a, b, c] = board;
-      main = `<div class="hq"><div class="k">KOLO ${r} · KONIEC</div><h1 style="font-size:4.4vw">Víťazi Erasmus Run 🏆</h1></div>
+      main = `<div class="hq"><div class="k">ERASMUS RUN · KONIEC</div><h1 style="font-size:4.4vw">Víťazi Erasmus Run 🏆</h1></div>
         <div class="hpod">${b ? `<div class="g2"><b>${esc(b.nick)}</b><i>2</i><span>${b.total} m</span></div>` : '<div></div>'}
           ${a ? `<div class="g1"><b>${esc(a.nick)}</b><i>1</i><span>${a.total} m</span></div>` : ''}
           ${c ? `<div class="g3"><b>${esc(c.nick)}</b><i>3</i><span>${c.total} m</span></div>` : '<div></div>'}</div>`;
@@ -547,7 +570,7 @@ function drawHost(soft) {
   $('#host').innerHTML = `<div class="hw">${header}<div class="hmain">${main}</div><div class="hfoot">${foot}</div></div>`;
   $('#hx').onclick = closeHost;
   const on = (id, fn) => { const e = $(id); if (e) e.onclick = fn; };
-  on('#hLobby', () => hostSet({ status: 'lobby', round: +$('#hR').value, duration: +$('#hD').value, q: 0, started_at: null }));
+  on('#hLobby', () => hostSet({ status: 'lobby', round: LIVE_ROUND, duration: +$('#hD').value, q: 0, started_at: null }));
   on('#hOff', () => { if (st.status === 'final' || confirm('Ukončiť živú hru?')) hostSet({ status: 'off' }); });
   on('#hStart', () => hostSet({ status: 'question', q: 0, started_at: new Date().toISOString() }));
   on('#hEnd', () => hostSet({ status: 'reveal' }));
@@ -582,26 +605,36 @@ async function runAdminHtml() {
   let rows = []; try { rows = await runFetch(); } catch (_) {}
   runScore(rows);
   const unk = {};
-  rows.forEach(x => { if (x._j.valid || x._j.blank) return; const pi = pidxOf(x.round, x.q), k = pi + '|' + x._j.norm; (unk[k] = unk[k] || { pi, norm: x._j.norm, text: x.answer, n: 0 }).n++; });
+  rows.forEach(x => { if (x._j.valid || x._j.blank) return; const pi = pidxOf(x.round, x.q), k = pi + '|' + x._j.norm; (unk[k] = unk[k] || { pi, norm: x._j.norm, text: x.answer, n: 0, live: x.round === LIVE_ROUND }).n++; });
   const list = Object.values(unk).sort((a, b) => b.n - a.n).slice(0, 80);
-  const players = new Set(rows.map(x => x.player_id)).size;
+  const live = rows.filter(x => x.round === LIVE_ROUND), daily = rows.filter(x => x.round !== LIVE_ROUND);
   const st = runState || {};
   return `<h2 style="margin-top:14px">🏃 Erasmus Run</h2>
-    <p class="muted">250 výziev · 50 kôl · každý deň sa odomkne jedno. Kolo 1 je deň spoločnej hry.</p>
-    <div class="card arow"><div class="th">📅</div><div><b>${st.start_date ? 'Štart: ' + new Date(st.start_date + 'T00:00').toLocaleDateString('sk-SK') : 'Hra ešte nie je spustená'}</b><span>Odomknuté kolá: ${runUnlocked()} · hráčov: ${players} · odpovedí: ${rows.length}</span></div></div>
-    <label>Dátum kola 1 (deň spoločnej hry)</label><input type="date" id="rsD" value="${st.start_date || todayStr()}">
-    <div class="two" style="margin-top:10px"><div><button class="btn ink full" id="rsSave">Uložiť dátum</button></div><div><button class="btn or full" id="rsHost">📺 Projektor</button></div></div>
-    ${st.status && st.status !== 'off' ? `<button class="btn line full" id="rsStop" style="margin-top:10px">⏹ Ukončiť živú hru (${esc(st.status)})</button>` : ''}
-    <h2 style="margin-top:22px;font-size:22px">Neuznané odpovede (${list.length})</h2>
+    <p class="muted">Jednorazová hra naživo cez projektor (5 výziev). V appke je viditeľná do utorka 24. 11.</p>
+    <div class="card arow"><div class="th">📺</div><div><b>Stav: ${st.status && st.status !== 'off' ? 'beží (' + esc(st.status) + ')' : 'nespustená'}</b><span>Hráčov: ${new Set(live.map(x => x.player_id)).size} · odpovedí: ${live.length}</span></div></div>
+    <div class="two" style="margin-top:10px"><div><button class="btn or full" id="rsHost">📺 Otvoriť projektor</button></div><div><button class="btn line full" id="rsWipeLive">🧪 Vymazať skúšobnú hru</button></div></div>
+    ${st.status && st.status !== 'off' ? `<button class="btn line full" id="rsStop" style="margin-top:10px">⏹ Ukončiť živú hru</button>` : ''}
+    <h2 style="margin-top:26px">⛏️ VÝKOP</h2>
+    <p class="muted">Denná hra · 245 výziev · každý deň sa odomkne nové kolo s 5 výzvami.</p>
+    <div class="card arow"><div class="th">📅</div><div><b>${st.start_date ? 'Deň 1: ' + new Date(st.start_date + 'T00:00').toLocaleDateString('sk-SK') : 'VÝKOP ešte nie je spustený'}</b><span>Odomknuté dni: ${runUnlocked()} · hráčov: ${new Set(daily.map(x => x.player_id)).size} · odpovedí: ${daily.length}</span></div></div>
+    <label>Dátum, kedy začína deň 1</label><input type="date" id="rsD" value="${st.start_date || todayStr()}">
+    <button class="btn ink full" id="rsSave" style="margin-top:10px">Uložiť dátum štartu</button>
+    <h2 style="margin-top:26px;font-size:22px">Neuznané odpovede (${list.length})</h2>
     <p class="muted" style="font-size:13px">Odpovede, ktoré hra nepoznala. Ak sú správne, uznaj ich – body sa všetkým prepočítajú.</p>
-    ${list.map(u => `<div class="card qcard"><div class="t">${esc(window.RUN_PROMPTS[u.pi].p)} · kolo ${Math.floor(u.pi / 5) + 1}</div><div class="q" style="font-size:17px;margin-top:4px">„${esc(u.text)}“ ${u.n > 1 ? `<span class="muted">×${u.n}</span>` : ''}</div>
+    ${list.map(u => `<div class="card qcard"><div class="t">${esc(window.RUN_PROMPTS[u.pi].p)} · ${u.live ? 'Erasmus Run' : 'VÝKOP deň ' + (Math.floor(u.pi / 5))}</div><div class="q" style="font-size:17px;margin-top:4px">„${esc(u.text)}“ ${u.n > 1 ? `<span class="muted">×${u.n}</span>` : ''}</div>
       <div class="two" style="margin-top:8px"><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|0">✓ Bežná</button></div><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|1">✓ Menej známa</button></div><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|2">💎 Vzácna</button></div></div></div>`).join('') || '<p class="muted">Všetko je vyhodnotené 👍</p>'}
-    <button class="btn danger full" id="rsWipe" style="margin-top:28px">🗑 Vymazať všetky odpovede hry</button>`;
+    <button class="btn danger full" id="rsWipe" style="margin-top:28px">🗑 Vymazať všetky odpovede (obe hry)</button>`;
 }
 function runAdminBind() {
   const on = (id, fn) => { const e = $(id); if (e) e.onclick = fn; };
   on('#rsSave', async () => { const d = $('#rsD').value; const { error } = await sb.from('erasmus_run_state').update({ start_date: d || null, updated_at: new Date().toISOString() }).eq('id', 1); toast(error ? 'Chyba: ' + error.message : 'Uložené ✅'); admPanel(); });
   on('#rsHost', openHost);
+  on('#rsWipeLive', async () => {
+    if (!confirm('Vymazať odpovede a hráčov Erasmus Run? (napr. po skúšobnej hre)')) return;
+    await sb.from('erasmus_run_answers').delete().eq('round', LIVE_ROUND); await sb.from('erasmus_run_join').delete().eq('round', LIVE_ROUND);
+    await sb.from('erasmus_run_state').update({ status: 'off', q: 0, started_at: null, updated_at: new Date().toISOString() }).eq('id', 1);
+    toast('Vymazané – môžete hrať naostro'); admPanel();
+  });
   on('#rsStop', async () => { await sb.from('erasmus_run_state').update({ status: 'off', updated_at: new Date().toISOString() }).eq('id', 1); admPanel(); });
   on('#rsWipe', async () => {
     if (!confirm('Naozaj vymazať VŠETKY odpovede a rebríčky Erasmus Run?') || !confirm('Určite? Toto sa nedá vrátiť.')) return;

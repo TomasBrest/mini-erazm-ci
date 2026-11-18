@@ -368,6 +368,8 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 
 .runban { display: block; width: calc(100% - 28px); margin: 0 14px; border-radius: 24px; overflow: hidden; text-align: left; color: #fff; background: radial-gradient(120% 120% at 0% 0%, #26306a, #0c1128 60%, #2a1a0a); box-shadow: 0 14px 30px -14px rgba(12,17,40,.7); }
 .runban .hz { height: 12px; border-radius: 0; }
+.runban.vyk { background: linear-gradient(160deg, #6b4423 0%, #3d2614 55%, #1e130a 100%); }
+.runban.vyk b em { color: #FFB25E; }
 .runban .in { display: flex; align-items: center; gap: 14px; padding: 16px 16px 18px; }
 .runban .e { font-size: 40px; }
 .runban b { font-family: var(--disp); font-size: 24px; font-weight: 800; letter-spacing: .03em; display: block; }
@@ -428,12 +430,12 @@ const PROGS = [
 ];
 const progOf = k => PROGS.find(p => p.k === k);
 const LIFE = [
-  { img: 'l-zs', t: 'Združenie študentov SvF', d: 'Akcie, výlety, párty aj stavbársky ples. Partia, ktorá ťa vtiahne do diania.' },
-  { img: 'l-sport', t: 'Šport', d: 'Vysokoškolská liga – futbal, basketbal, florbal, plávanie, volejbal. Plus lezenie, bedminton, tenis, turistika, cyklistika a iné.' },
-  { img: 'l-bratislava', t: 'Erasmus do sveta', d: 'Zmluvy so 108 univerzitami v 24 štátoch Európy a finančná podpora na 1 alebo 2 semestre.' },
+  { img: 'l-zs2', t: 'Združenie študentov SvF', d: 'Akcie, výlety, párty aj stavbársky ples. Partia, ktorá ťa vtiahne do diania.' },
+  { img: 'l-sport2', t: 'Šport', d: 'Vysokoškolská liga – futbal, basketbal, florbal, plávanie, volejbal. Plus lezenie, bedminton, tenis, turistika, cyklistika a iné.' },
+  { img: 'l-priestory', t: 'Moderné priestory', d: 'Nové študovne a priestory, kde sa dá učiť aj oddychovať.' },
+  { img: 'l-erasmus', t: 'Erasmus do sveta', d: 'Zmluvy so 108 univerzitami v 24 štátoch Európy a finančná podpora na 1 alebo 2 semestre.' },
   { img: 'l-lab', t: 'Laboratóriá a výskum', d: 'Špecializované laboratóriá a výskumné projekty, kde si veci vyskúšaš naživo.' },
-  { img: 'l-prax', t: 'Prax, exkurzie, stáže', d: 'Praktické cvičenia, exkurzie na stavby a stáže vo firmách.' },
-  { img: 'l-priestory', t: 'Moderné priestory', d: 'Nové študovne a priestory, kde sa dá učiť aj oddychovať.' }
+  { img: 'l-prax', t: 'Prax, exkurzie, stáže', d: 'Praktické cvičenia, exkurzie na stavby a stáže vo firmách.' }
 ];
 const DORMS = [
   { n: 'ŠD Jura Hronca', p: 'cca 115 €', e: '🏢' },
@@ -583,7 +585,26 @@ function tkey(t) { return String(t || '').toLowerCase().normalize('NFD').replace
 function imgOf(it) { return (it && (it.image_url || DEFAULT_IMG[tkey(it.title)])) || ''; }
 
 /* ================= Dáta ================= */
-let items = LS.get('erasmus.items', []);
+// Erasmus Run (hra naživo) je viditeľný do utorka 24. 11. 2026 vrátane
+const RUN_HIDE_AFTER = new Date('2026-11-25T00:00:00+01:00').getTime();
+const BUILTIN = [
+  { id: 'b-karier', kind: 'event', title: 'Kariérny deň SvF', subtitle: 'Stavebná fakulta STU', body: 'Stretnutie s praxou – stavebné firmy, stáže, brigády aj prvá práca. Registrácia na webe fakulty.', starts_at: '2026-11-24T11:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk', emoji: '💼', published: true },
+  { id: 'b-movie', kind: 'event', title: 'Movie night', subtitle: 'Združenie študentov SvF', body: 'Filmový večer s partiou zo Združenia študentov SvF 🍿', starts_at: '2026-11-18T11:00:00Z', all_day: true, link: 'https://www.instagram.com/zssvf/', emoji: '🎬', published: true },
+  { id: 'b-otv', kind: 'deadline', title: 'Slávnostné otvorenie akademického roka', subtitle: 'Stavebná fakulta STU', starts_at: '2026-09-14T10:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk/sk/studenti/harmonogram-akademickeho-roka', emoji: '🎓', sort: 2, published: true },
+  { id: 'b-zs', kind: 'deadline', title: 'Výučba – zimný semester', subtitle: '13 týždňov', starts_at: '2026-09-14T10:00:00Z', ends_at: '2026-12-12T11:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk/sk/studenti/harmonogram-akademickeho-roka', emoji: '📚', sort: 3, published: true },
+  { id: 'b-skzs', kind: 'deadline', title: 'Skúškové obdobie – zimný semester', subtitle: '7 týždňov', starts_at: '2026-12-14T11:00:00Z', ends_at: '2027-02-13T11:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk/sk/studenti/harmonogram-akademickeho-roka', emoji: '📝', sort: 4, published: true },
+  { id: 'b-zp', kind: 'deadline', title: 'Zimné prázdniny', starts_at: '2026-12-21T11:00:00Z', ends_at: '2027-01-02T11:00:00Z', all_day: true, emoji: '🎄', sort: 5, published: true },
+  { id: 'b-ls', kind: 'deadline', title: 'Výučba – letný semester', subtitle: '13 týždňov', starts_at: '2027-02-15T11:00:00Z', ends_at: '2027-05-15T10:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk/sk/studenti/harmonogram-akademickeho-roka', emoji: '📚', sort: 6, published: true },
+  { id: 'b-skls', kind: 'deadline', title: 'Skúškové obdobie – letný semester', subtitle: '7 týždňov', starts_at: '2027-05-17T10:00:00Z', ends_at: '2027-07-03T10:00:00Z', all_day: true, link: 'https://www.svf.stuba.sk/sk/studenti/harmonogram-akademickeho-roka', emoji: '📝', sort: 7, published: true },
+  { id: 'b-lp', kind: 'deadline', title: 'Letné prázdniny', starts_at: '2027-07-05T10:00:00Z', ends_at: '2027-08-31T10:00:00Z', all_day: true, emoji: '☀️', sort: 8, published: true }
+];
+function mergeBuiltin(list) {
+  const out = (list || []).map(i => i.kind === 'event' && i.title === 'Kvíz & Movie night' ? { ...i, title: 'Kvíz' } : i);
+  const has = new Set(out.map(i => i.kind + '|' + tkey(i.title)));
+  BUILTIN.forEach(b => { if (!has.has(b.kind + '|' + tkey(b.title))) out.push(b); });
+  return out.sort((a, b) => (a.starts_at || '9999').localeCompare(b.starts_at || '9999'));
+}
+let items = mergeBuiltin(LS.get('erasmus.items', []));
 let answers = LS.get('erasmus.answers', []);
 async function loadData() {
   try {
@@ -591,7 +612,7 @@ async function loadData() {
       sb.from('erasmus_items').select('*').eq('published', true).order('starts_at', { ascending: true, nullsFirst: false }).order('sort'),
       sb.from('erasmus_questions').select('id,question,answer,answered_at').eq('is_public', true).not('answer', 'is', null).order('answered_at', { ascending: false })
     ]);
-    if (!a.error) { items = a.data || []; LS.set('erasmus.items', items); }
+    if (!a.error) { LS.set('erasmus.items', a.data || []); items = mergeBuiltin(a.data || []); }
     if (!b.error) { answers = b.data || []; LS.set('erasmus.answers', answers); }
     render();
   } catch (_) {}
@@ -679,10 +700,11 @@ function viewHome() {
     </div>
   </div>
   <div class="sec"><div class="sec-h"><h2>Zahraj sa</h2></div>
-    <button class="runban" id="runTile"><div class="hz"></div><div class="in"><span class="e">⛏️</span><div><b>ERASMUS <em>RUN</em></b><span>Denná stavbárska hra · 5 výziev denne · rebríček</span></div><i>Hrať →</i></div></button>
+    ${Date.now() < RUN_HIDE_AFTER ? `<button class="runban" id="runTile"><div class="hz"></div><div class="in"><span class="e">🏃</span><div><b>ERASMUS <em>RUN</em></b><span>Hra naživo na Mini Erasme · spustí ju organizátor</span></div><i>Vstúpiť →</i></div></button>` : ''}
     <div class="play" style="margin-top:10px">
       <button class="tile a" id="quizTile" style="grid-column:span 2;min-height:120px"><span class="e">🧭</span><div><b>Ktorý odbor je pre teba?</b><br><span>20 otázok · 3 minúty · percentá pre všetkých 8 odborov</span></div></button>
     </div>
+    <button class="runban vyk" id="vykTile" style="margin-top:10px"><div class="hz"></div><div class="in"><span class="e">⛏️</span><div><b>VÝ<em>KOP</em></b><span>Denná stavbárska hra · 5 výziev každý deň · rebríček</span></div><i>Hrať →</i></div></button>
   </div>
   ${photos.length ? `<div class="sec"><div class="sec-h"><h2>Spomienky z Mini Erasmu</h2></div>
     <div class="gal">${photos.slice(0, 5).map((p, i) => `<button data-ph="${i}" style="background-image:url('${esc(p.image_url)}')" aria-label="${esc(p.title)}"></button>`).join('')}</div></div>` : ''}
@@ -702,7 +724,8 @@ bind.home = () => {
   bindCommon();
   $('#remindBtn').onclick = remindSheet;
   $('#quizTile').onclick = openQuiz;
-  $('#runTile').onclick = () => openRun();
+  const rt = $('#runTile'); if (rt) rt.onclick = () => openRun();
+  $('#vykTile').onclick = () => openVykop();
   $('#bellBtn').onclick = () => pushOn() ? toast('🔔 Upozornenia máš zapnuté') : enablePush();
   const pb = $('#pushBtn'); if (pb) pb.onclick = enablePush;
   document.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => openPhoto(+b.dataset.ph));
@@ -754,11 +777,13 @@ function viewEvents() {
     ${past.length ? `<div class="sec"><div class="sec-h"><h2>Už prebehlo</h2></div><div class="hscroll">${past.slice(0, 10).map(e => evCard(e)).join('')}</div></div>` : ''}
   ` : `<div class="tl">${dl.map(it => {
       const n = it.starts_at ? daysTo(it.starts_at) : null;
-      return `<div class="card tli ${n != null && n < 0 ? 'past' : ''}" data-dl="${it.id}">
+      const endN = it.ends_at ? daysTo(it.ends_at) : n;
+      const running = n != null && n < 0 && endN != null && endN >= 0;
+      return `<div class="card tli ${endN != null && endN < 0 ? 'past' : ''}" data-dl="${it.id}">
         <div class="when">${esc(it.starts_at ? fmtDate(it, true) : 'Termín čoskoro')}</div>
         <b>${esc((it.emoji ? it.emoji + ' ' : '') + it.title)}</b>
         ${it.subtitle ? `<p><strong>${esc(it.subtitle)}</strong></p>` : ''}${it.body ? `<p>${esc(it.body)}</p>` : ''}
-        ${n != null && n >= 0 ? `<span class="in">${inDays(n)}</span>` : ''}
+        ${n != null && n >= 0 ? `<span class="in">${inDays(n)}</span>` : running ? '<span class="in" style="background:var(--ok)">práve prebieha</span>' : ''}
       </div>`; }).join('') || '<div class="empty">Termíny čoskoro.</div>'}</div>`}`;
 }
 bind.events = () => {
@@ -1073,7 +1098,7 @@ function admLogin(mode = 'login') {
 async function admLogout() { await sb.auth.signOut(); admLogin(); }
 const KINDS = [
   { k: 'event', n: '🎉 Akcie' }, { k: 'deadline', n: '📌 Termíny' }, { k: 'faq', n: '❓ FAQ' }, { k: 'buddy', n: '🤝 Buddies' },
-  { k: 'run', n: '🏃 Erasmus Run' }, { k: 'photo', n: '📸 Fotky' }, { k: 'questions', n: '💬 Otázky' }, { k: 'push', n: '🔔 Notifikácia' }, { k: 'admins', n: '👤 Admini' }
+  { k: 'run', n: '🏃 Erasmus Run & Výkop' }, { k: 'photo', n: '📸 Fotky' }, { k: 'questions', n: '💬 Otázky' }, { k: 'push', n: '🔔 Notifikácia' }, { k: 'admins', n: '👤 Admini' }
 ];
 async function admPanel() {
   const [a, q] = await Promise.all([
@@ -1224,6 +1249,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) load
 const qp = new URLSearchParams(location.search);
 if (qp.has('admin')) openAdmin();
 if (qp.has('run')) setTimeout(() => window.openRun && openRun(), 300);
+if (qp.has('vykop')) setTimeout(() => window.openVykop && openVykop(), 300);
 if (qp.has('host')) setTimeout(() => window.openHost && openHost(), 300);
 let taps = 0; document.addEventListener('click', e => { if (e.target.closest('.brand .logo')) { if (++taps >= 5) { taps = 0; openAdmin(); } } });
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
