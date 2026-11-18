@@ -407,6 +407,7 @@ const SUPABASE_URL = 'https://xkmcohzferzcqgmcbynv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_EDk2wVXCJH8wH5I_AZCUkg_aXLlXdsr';
 const VAPID_PUBLIC = 'BF7Z_yI2HCobMvr2IqaAA5JtKawWKZPYbdxVM_oLWfMsQDE8GPfaZh2sh3xjX8Hs-X1ZZdT8v1kswyhLiSgjM4A';
 const APP_URL = location.origin + location.pathname;
+const APPLY_URL = 'https://www.svf.stuba.sk/sk/uchadzaci/prijimacie-konanie-a-terminy/prijimacie-konanie-na-bakalarske-studium';
 const DEADLINE = new Date('2027-03-31T23:59:00+02:00');
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'erasmus-auth' }
@@ -518,7 +519,7 @@ const TF = [
 const STEPS = [
   { t: 'Zisti, ktorý odbor je pre teba', d: 'Sprav si náš kvíz a pozri si všetkých 8 bakalárskych programov.', go: 'Spustiť kvíz →', a: () => openQuiz() },
   { t: 'Príď na Deň otvorených dverí', d: 'Pozri si fakultu, laboratóriá a opýtaj sa študentov na čokoľvek.', go: 'Pozrieť termíny →', a: () => go('events', 'deadlines') },
-  { t: 'Vyplň elektronickú prihlášku', d: 'Bez prijímacej skúšky. Všetky pokyny nájdeš na webe fakulty.', go: 'svf.stuba.sk →', href: 'https://www.svf.stuba.sk' },
+  { t: 'Vyplň elektronickú prihlášku', d: 'Bez prijímacej skúšky. Všetky pokyny nájdeš na webe fakulty.', go: 'Ako podať prihlášku →', href: APPLY_URL },
   { t: 'Skontroluj, že je prihláška podaná', d: 'Termín je 31. marca 2027. Pripomienku si môžeš dať do kalendára.', go: 'Pripomeň mi →', a: () => remindSheet() },
   { t: 'Vyber si internát', d: 'Ceny od cca 106 € mesačne – pozri si porovnanie nižšie.' }
 ];
@@ -599,7 +600,8 @@ const BUILTIN = [
   { id: 'b-lp', kind: 'deadline', title: 'Letné prázdniny', starts_at: '2027-07-05T10:00:00Z', ends_at: '2027-08-31T10:00:00Z', all_day: true, emoji: '☀️', sort: 8, published: true }
 ];
 function mergeBuiltin(list) {
-  const out = (list || []).map(i => i.kind === 'event' && i.title === 'Kvíz & Movie night' ? { ...i, title: 'Kvíz' } : i);
+  const out = (list || []).map(i => i.kind === 'event' && i.title === 'Kvíz & Movie night' ? { ...i, title: 'Kvíz' }
+    : (i.kind === 'deadline' && tkey(i.title) === 'uzavierka prihlasok' ? { ...i, link: APPLY_URL } : i));
   const has = new Set(out.map(i => i.kind + '|' + tkey(i.title)));
   BUILTIN.forEach(b => { if (!has.has(b.kind + '|' + tkey(b.title))) out.push(b); });
   return out.sort((a, b) => (a.starts_at || '9999').localeCompare(b.starts_at || '9999'));
@@ -686,7 +688,7 @@ function viewHome() {
       <div class="digit"><b id="cd-m">–</b><span>min</span></div>
       <div class="digit"><b id="cd-s">–</b><span>sek</span></div>
     </div>
-    <div class="row"><button class="btn w flex" id="remindBtn">⏰ Pripomeň mi</button><button class="btn g flex" data-go="apply">Ako sa prihlásiť →</button></div>
+    <div class="row"><button class="btn w flex" id="remindBtn">⏰ Pripomeň mi</button><a class="btn g flex" href="${APPLY_URL}" target="_blank" rel="noopener">📝 Prihláška →</a></div>
   </section>
   ${pushOn() || !pushSupported() ? '' : `<div class="card notif"><div class="ic">🔔</div><div><b>Nech ti nič neujde</b><span>Upozorníme ťa na nové akcie a termíny.</span></div><button class="btn or" id="pushBtn">Zapnúť</button></div>`}
   <div class="sec"><div class="sec-h"><h2>Najbližšie akcie</h2><button data-go="events">Všetky →</button></div>
@@ -752,7 +754,7 @@ function tick() {
 }
 setInterval(tick, 1000);
 function remindSheet() {
-  const it = { id: 'deadline-2027', title: 'Uzávierka prihlášok na SvF STU', subtitle: 'Elektronická prihláška · bez prijímacej skúšky', body: 'Podaj prihlášku najneskôr do 31. 3. 2027.', link: 'https://www.svf.stuba.sk', starts_at: '2027-03-31T00:00:00+02:00', all_day: true };
+  const it = { id: 'deadline-2027', title: 'Uzávierka prihlášok na SvF STU', subtitle: 'Elektronická prihláška · bez prijímacej skúšky', body: 'Podaj prihlášku najneskôr do 31. 3. 2027.', link: APPLY_URL, starts_at: '2027-03-31T00:00:00+02:00', all_day: true };
   openSheet(`<div class="sh-in" style="padding-top:6px">
     <div class="kicker">Pripomienka</div><h2>Nezabudni na 31. marec 2027 ⏰</h2>
     <p class="body muted">Pridaj si termín do kalendára – pripomenie ti ho týždeň a deň vopred.</p>
@@ -865,8 +867,7 @@ function openProgram(k) {
       <div class="meta">${p.kw.map(w => `<span class="chip v">${esc(w)}</span>`).join('')}</div>
       <p class="body">${esc(p.d)}</p>
       <div class="acts"><a class="btn ink full" href="https://www.svf.stuba.sk" target="_blank" rel="noopener">Viac na svf.stuba.sk →</a>
-      <button class="btn line full" id="pApply">📝 Ako sa prihlásiť</button></div></div>`);
-  $('#pApply').onclick = () => { closeSheet(); go('apply'); };
+      <a class="btn line full" href="${APPLY_URL}" target="_blank" rel="noopener">📝 Prihláška na štúdium</a></div></div>`);
 }
 
 /* ---- Kvíz ---- */
@@ -964,7 +965,7 @@ function viewApply() {
     <div class="dorms">${DORMS.map(d => `<div class="card dorm"><div class="e">${d.e}</div><b>${esc(d.n)}</b><div class="p">${esc(d.p)} <small>/ mesiac</small></div>
       <a href="https://www.google.com/maps/search/${encodeURIComponent(d.n.replace('ŠD', 'Študentský domov') + ' Bratislava')}" target="_blank" rel="noopener">📍 Ukázať na mape →</a></div>`).join('')}</div>
   </div>
-  <div class="pad" style="margin-top:18px"><a class="btn ink full" href="https://www.svf.stuba.sk" target="_blank" rel="noopener">Všetky info o prijímačkách na svf.stuba.sk →</a></div>
+  <div class="pad" style="margin-top:18px"><a class="btn or full" href="${APPLY_URL}" target="_blank" rel="noopener">📝 Prihláška – prijímacie konanie →</a></div>
   <div class="foot">Termíny a podmienky si vždy over aj na webe fakulty.</div>`;
 }
 bind.apply = () => {
