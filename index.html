@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="SvF Future">
 <title>SvF Future</title>
 <link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="run.css">
 <link rel="icon" href="icons/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -364,6 +365,15 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 .dots { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
 .dots i { width: 7px; height: 7px; border-radius: 4px; background: #DDD3C7; transition: all .3s; }
 .dots i.on { width: 22px; background: var(--or); }
+
+.runban { display: block; width: calc(100% - 28px); margin: 0 14px; border-radius: 24px; overflow: hidden; text-align: left; color: #fff; background: radial-gradient(120% 120% at 0% 0%, #26306a, #0c1128 60%, #2a1a0a); box-shadow: 0 14px 30px -14px rgba(12,17,40,.7); }
+.runban .hz { height: 12px; border-radius: 0; }
+.runban .in { display: flex; align-items: center; gap: 14px; padding: 16px 16px 18px; }
+.runban .e { font-size: 40px; }
+.runban b { font-family: var(--disp); font-size: 24px; font-weight: 800; letter-spacing: .03em; display: block; }
+.runban b em { font-style: normal; color: #FFC400; }
+.runban span { font-size: 13px; opacity: .8; }
+.runban i { margin-left: auto; font-style: normal; background: #FFC400; color: #1a1300; font-weight: 800; padding: 10px 14px; border-radius: 14px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -382,6 +392,8 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 <div class="fullscr" id="quiz"></div>
 <div class="fullscr" id="game"></div>
 <div class="fullscr" id="admin"></div>
+<div id="run"></div>
+<div id="host"></div>
 <canvas class="confetti" id="confetti"></canvas>
 <div class="toast" id="toast"></div>
 
@@ -667,9 +679,9 @@ function viewHome() {
     </div>
   </div>
   <div class="sec"><div class="sec-h"><h2>Zahraj sa</h2></div>
-    <div class="play">
-      <button class="tile a" id="quizTile"><span class="e">🧭</span><div><b>Ktorý odbor je pre teba?</b><br><span>20 otázok · 3 minúty</span></div></button>
-      <button class="tile b" id="gameTile"><span class="e">🤔</span><div><b>Pravda alebo mýtus?</b><br><span>${TF.length} tvrdení o SvF</span></div></button>
+    <button class="runban" id="runTile"><div class="hz"></div><div class="in"><span class="e">⛏️</span><div><b>ERASMUS <em>RUN</em></b><span>Denná stavbárska hra · 5 výziev denne · rebríček</span></div><i>Hrať →</i></div></button>
+    <div class="play" style="margin-top:10px">
+      <button class="tile a" id="quizTile" style="grid-column:span 2;min-height:120px"><span class="e">🧭</span><div><b>Ktorý odbor je pre teba?</b><br><span>20 otázok · 3 minúty · percentá pre všetkých 8 odborov</span></div></button>
     </div>
   </div>
   ${photos.length ? `<div class="sec"><div class="sec-h"><h2>Spomienky z Mini Erasmu</h2></div>
@@ -690,7 +702,7 @@ bind.home = () => {
   bindCommon();
   $('#remindBtn').onclick = remindSheet;
   $('#quizTile').onclick = openQuiz;
-  $('#gameTile').onclick = openGame;
+  $('#runTile').onclick = () => openRun();
   $('#bellBtn').onclick = () => pushOn() ? toast('🔔 Upozornenia máš zapnuté') : enablePush();
   const pb = $('#pushBtn'); if (pb) pb.onclick = enablePush;
   document.querySelectorAll('[data-ph]').forEach(b => b.onclick = () => openPhoto(+b.dataset.ph));
@@ -1061,7 +1073,7 @@ function admLogin(mode = 'login') {
 async function admLogout() { await sb.auth.signOut(); admLogin(); }
 const KINDS = [
   { k: 'event', n: '🎉 Akcie' }, { k: 'deadline', n: '📌 Termíny' }, { k: 'faq', n: '❓ FAQ' }, { k: 'buddy', n: '🤝 Buddies' },
-  { k: 'photo', n: '📸 Fotky' }, { k: 'questions', n: '💬 Otázky' }, { k: 'push', n: '🔔 Notifikácia' }, { k: 'admins', n: '👤 Admini' }
+  { k: 'run', n: '🏃 Erasmus Run' }, { k: 'photo', n: '📸 Fotky' }, { k: 'questions', n: '💬 Otázky' }, { k: 'push', n: '🔔 Notifikácia' }, { k: 'admins', n: '👤 Admini' }
 ];
 async function admPanel() {
   const [a, q] = await Promise.all([
@@ -1077,6 +1089,8 @@ async function admPanel() {
       ${list.map(i => `<div class="card arow"><div class="th" ${i.image_url ? `style="background-image:url('${esc(i.image_url)}')"` : ''}>${i.image_url ? '' : esc(i.emoji || '•')}</div>
         <div><b>${esc(i.title || '(bez názvu)')}</b><span>${esc([i.starts_at ? fmtDate(i) : '', i.published ? '' : '🙈 skryté'].filter(Boolean).join(' · '))}</span></div>
         <div class="ed"><button data-e="${i.id}">✏️</button><button data-d="${i.id}">🗑</button></div></div>`).join('') || '<p class="muted">Zatiaľ nič.</p>'}`;
+  } else if (admTab === 'run') {
+    body = await runAdminHtml();
   } else if (admTab === 'questions') {
     body = admQs.map(q => `<div class="card qcard"><div class="q">${esc(q.question)}</div><div class="t">${new Date(q.created_at).toLocaleString('sk-SK')} ${q.is_public ? '· ✅ zverejnené' : q.answer ? '· uložené, nezverejnené' : '· 🆕 bez odpovede'}</div>
       <textarea data-qa="${q.id}" placeholder="Tvoja odpoveď…">${esc(q.answer || '')}</textarea>
@@ -1108,6 +1122,7 @@ async function admPanel() {
     const ng = $('#nGo'); if (ng) ng.onclick = async () => { const r = await sendPush($('#nT').value.trim(), $('#nB').value.trim()); $('#nErr').textContent = r; };
     const ad = $('#adGo'); if (ad) ad.onclick = async () => { const { error } = await sb.rpc('erasmus_add_admin', { p_email: $('#adE').value }); $('#adErr').textContent = error ? error.message : '✅ Pridaný'; if (!error) admPanel(); };
     const ao = $('#aOut'); if (ao) ao.onclick = admLogout;
+    if (admTab === 'run') runAdminBind();
   });
 }
 async function sendPush(title, body) {
@@ -1208,8 +1223,12 @@ loadData();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadData(); });
 const qp = new URLSearchParams(location.search);
 if (qp.has('admin')) openAdmin();
+if (qp.has('run')) setTimeout(() => window.openRun && openRun(), 300);
+if (qp.has('host')) setTimeout(() => window.openHost && openHost(), 300);
 let taps = 0; document.addEventListener('click', e => { if (e.target.closest('.brand .logo')) { if (++taps >= 5) { taps = 0; openAdmin(); } } });
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 </script>
+<script src="run-prompts.js"></script>
+<script src="run.js"></script>
 </body>
 </html>
