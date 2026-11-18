@@ -502,6 +502,16 @@ function icsDownload(it, alarms = ['-P1D']) {
   document.body.appendChild(a); a.click(); a.remove();
 }
 
+/* ================= Fotky podľa názvu (záloha, ak v databáze chýbajú) ================= */
+const DEFAULT_IMG = {
+  'uvod do studia': 'img/ev-uvod.jpg', 'dvojbodka stavbarovica': 'img/ev-dvojbodka.jpg', 'sportovy den': 'img/ev-sport.jpg',
+  'kviz movie night': 'img/ev-kviz.jpg', 'kvapka krvi': 'img/ev-krv.jpg', 'mikulassky punc': 'img/ev-punc.jpg',
+  'stromceky': 'img/ev-stromceky.jpg', 'stavbarsky ples': 'img/ev-ples.jpg', 'your knowledge vikend': 'img/ev-yk.jpg', 'yk': 'img/ev-yk.jpg',
+  'uzavierka prihlasok': 'img/ev-uzavierka.jpg', 'den otvorenych dveri svf': 'img/ev-dod.jpg', 'tomas': 'img/buddy-tomas.jpg'
+};
+function tkey(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function imgOf(it) { return (it && (it.image_url || DEFAULT_IMG[tkey(it.title)])) || ''; }
+
 /* ================= Dáta ================= */
 let items = LS.get('erasmus.items', []);
 let answers = LS.get('erasmus.answers', []);
@@ -554,9 +564,10 @@ const bind = {};
 /* ================= Domov ================= */
 function evCard(e, cls = 'ev') {
   const d = e.starts_at ? new Date(e.starts_at) : null;
-  const img = e.image_url ? `style="background-image:url('${esc(e.image_url)}')"` : '';
+  const iu = imgOf(e);
+  const img = iu ? `style="background-image:url('${esc(iu)}')"` : '';
   return `<button class="card ${cls}" data-ev="${e.id}">
-    <div class="im" ${img}>${e.image_url ? '' : esc(e.emoji || '🎉')}</div>
+    <div class="im" ${img}>${iu ? '' : esc(e.emoji || '🎉')}</div>
     ${d ? `<div class="date"><b>${d.getDate()}</b><span>${MONTHS[d.getMonth()]}</span></div>` : ''}
     ${isIG(e.link) ? '<span class="ig-tag">📸 Instagram</span>' : ''}
     <div class="tx"><b>${esc(e.title)}</b><span>${esc([fmtDate(e), e.subtitle].filter(Boolean).join(' · '))}</span></div>
@@ -688,7 +699,8 @@ bind.events = () => {
 function openEvent(e) {
   if (!e) return;
   const has = !!e.starts_at && daysTo(e.starts_at) >= 0;
-  openSheet(`<div class="sh-img" ${e.image_url ? `style="background-image:url('${esc(e.image_url)}')"` : ''}>${e.image_url ? '' : esc(e.emoji || (e.kind === 'deadline' ? '📌' : '🎉'))}</div>
+  const iu = imgOf(e);
+  openSheet(`<div class="sh-img" ${iu ? `style="background-image:url('${esc(iu)}')"` : ''}>${iu ? '' : esc(e.emoji || (e.kind === 'deadline' ? '📌' : '🎉'))}</div>
     <div class="sh-in">
       <div class="kicker">${e.kind === 'deadline' ? 'Termín' : 'Akcia'}</div>
       <h2>${esc(e.title)}</h2>
@@ -854,7 +866,7 @@ function viewHelp() {
   ${answers.length ? `<div class="sec"><div class="sec-h"><h2>Vaše otázky</h2></div>${answers.map(q => `<div class="card qa"><div class="q">💬 ${esc(q.question)}</div><p class="a">${esc(q.answer)}</p></div>`).join('')}</div>` : ''}
   ${faq.length ? `<div class="sec"><div class="sec-h"><h2>Čo vás najviac zaujíma</h2></div>${faq.map(f => `<details class="card faq"><summary><span>${esc(f.emoji || '❓')}</span>${esc(f.title)}</summary><p>${esc(f.body)}</p></details>`).join('')}</div>` : ''}
   ${buddies.length ? `<div class="sec"><div class="sec-h"><h2>${buddies.length === 1 ? 'Tvoj buddy' : 'Tvoji buddies'} 🤝</h2></div>${buddies.map(b => `<div class="card buddy">
-    <div class="bh"><div class="av" ${b.image_url ? `style="background-image:url('${esc(b.image_url)}')"` : ''}>${b.image_url ? '' : esc(b.emoji || (b.title || '?').charAt(0))}</div>
+    <div class="bh"><div class="av" ${imgOf(b) ? `style="background-image:url('${esc(imgOf(b))}')"` : ''}>${imgOf(b) ? '' : esc(b.emoji || (b.title || '?').charAt(0))}</div>
       <div><b>${esc(b.title)}</b>${b.subtitle ? `<span>${esc(b.subtitle)}</span>` : ''}</div></div>
     ${b.body ? `<p>${esc(b.body)}</p>` : ''}
     ${b.link ? (/wa\.me|whatsapp/i.test(b.link)
