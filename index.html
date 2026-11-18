@@ -229,7 +229,7 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 .faq[open] summary::after { transform: rotate(45deg); background: var(--or); color: #fff; }
 .faq p { margin: 0; padding: 0 16px 16px 50px; color: var(--muted); font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
 .buddy { display: flex; gap: 12px; align-items: center; margin: 10px 14px 0; padding: 14px; }
-.buddy .av { width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, var(--or2), var(--or)) center/cover; display: grid; place-items: center; font-size: 26px; flex: none; color: #fff; font-weight: 800; }
+.buddy .av { width: 72px; height: 72px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(36,30,92,.25); background: linear-gradient(135deg, var(--or2), var(--or)) center/cover; display: grid; place-items: center; font-size: 26px; flex: none; color: #fff; font-weight: 800; }
 .buddy b { display: block; font-size: 16px; }
 .buddy span { font-size: 13px; color: var(--muted); display: block; }
 .buddy p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
@@ -337,6 +337,20 @@ h1, h2, h3 { font-family: var(--disp); margin: 0; letter-spacing: -.01em; }
 .buddy { align-items: center; }
 .buddy > a { flex: none; margin-left: 0; }
 .buddy p { color: var(--muted); }
+
+.buddy { display: block !important; padding: 22px 18px 18px !important; text-align: center; }
+.buddy .bh { flex-direction: column; gap: 10px !important; }
+.buddy .bh .av { width: 96px !important; height: 96px !important; font-size: 40px; }
+.buddy .bh > div:last-child { flex: none !important; }
+.buddy .bh b { font-size: 24px !important; }
+.buddy > p { max-width: 300px; margin: 10px auto 0 !important; }
+.buddy .bh { display: flex; align-items: center; gap: 14px; }
+.buddy .bh > div:last-child { flex: 1; min-width: 0; }
+.buddy .bh b { font-family: var(--disp); font-size: 20px; }
+.buddy .bh span { font-size: 14px; margin-top: 2px; }
+.buddy > p { margin: 12px 0 0 !important; font-size: 14px !important; line-height: 1.5; color: var(--muted); }
+.buddy .btn.wa { margin-top: 14px; background: #25D366; color: #fff; }
+.buddy .btn.soft { margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -557,7 +571,7 @@ function viewHome() {
       <div class="brand"><div class="logo"><img src="icons/icon-192.png" alt=""></div>
         <div><b>SvF Future</b><span>Tu sa stavia tvoja budúcnosť</span></div>
         <button class="bell" id="bellBtn" aria-label="Upozornenia">🔔${pushOn() ? '' : '<i></i>'}</button></div>
-      <h1>Ahoj, budúci <em>stavbár.</em> 👷</h1>
+      <h1>Ahoj, budúci <em>stavbár!</em></h1>
       <p>Termíny, akcie, odbory a pomoc – všetko dôležité na jednom mieste.</p>
     </div>
   </section>
@@ -839,11 +853,14 @@ function viewHelp() {
     <button class="btn or full" id="askB">Odoslať anonymne</button></div>
   ${answers.length ? `<div class="sec"><div class="sec-h"><h2>Vaše otázky</h2></div>${answers.map(q => `<div class="card qa"><div class="q">💬 ${esc(q.question)}</div><p class="a">${esc(q.answer)}</p></div>`).join('')}</div>` : ''}
   ${faq.length ? `<div class="sec"><div class="sec-h"><h2>Čo vás najviac zaujíma</h2></div>${faq.map(f => `<details class="card faq"><summary><span>${esc(f.emoji || '❓')}</span>${esc(f.title)}</summary><p>${esc(f.body)}</p></details>`).join('')}</div>` : ''}
-  ${buddies.length ? `<div class="sec"><div class="sec-h"><h2>Tvoji buddies 🤝</h2></div>${buddies.map(b => `<div class="card buddy"><div class="av" ${b.image_url ? `style="background-image:url('${esc(b.image_url)}')"` : ''}>${b.image_url ? '' : esc(b.emoji || (b.title || '?').charAt(0))}</div>
-    <div><b>${esc(b.title)}</b>${b.subtitle ? `<span>${esc(b.subtitle)}</span>` : ''}${b.body ? `<p>${esc(b.body)}</p>` : ''}</div>
+  ${buddies.length ? `<div class="sec"><div class="sec-h"><h2>${buddies.length === 1 ? 'Tvoj buddy' : 'Tvoji buddies'} 🤝</h2></div>${buddies.map(b => `<div class="card buddy">
+    <div class="bh"><div class="av" ${b.image_url ? `style="background-image:url('${esc(b.image_url)}')"` : ''}>${b.image_url ? '' : esc(b.emoji || (b.title || '?').charAt(0))}</div>
+      <div><b>${esc(b.title)}</b>${b.subtitle ? `<span>${esc(b.subtitle)}</span>` : ''}</div></div>
+    ${b.body ? `<p>${esc(b.body)}</p>` : ''}
     ${b.link ? (/wa\.me|whatsapp/i.test(b.link)
-      ? `<a class="btn" style="height:40px;padding:0 12px;font-size:13px;background:#25D366;color:#fff" href="${esc(b.link)}" target="_blank" rel="noopener">💬 WhatsApp</a>`
-      : `<a class="btn soft" style="height:38px;padding:0 12px;font-size:13px" href="${esc(b.link)}" target="_blank" rel="noopener">Napísať</a>`) : ''}</div>`).join('')}</div>` : ''}
+      ? `<a class="btn full wa" href="${esc(b.link)}" target="_blank" rel="noopener">💬 Napísať na WhatsApp</a>`
+      : `<a class="btn full soft" href="${esc(b.link)}" target="_blank" rel="noopener">Napísať správu</a>`) : ''}
+  </div>`).join('')}</div>` : ''}
   <div class="foot">Stavebná fakulta STU · Radlinského 11, Bratislava<br><a href="https://www.svf.stuba.sk" target="_blank" rel="noopener">www.svf.stuba.sk</a></div>`;
 }
 bind.help = () => {
