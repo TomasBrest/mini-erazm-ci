@@ -369,7 +369,7 @@ function animateDig() {
 }
 function verdictHtml(j) {
   if (j.blank) return `<div class="verdict-r">⏰ Čas vypršal<small>Za túto výzvu 0 m.</small></div>`;
-  if (!j.valid && j.judged) return `<div class="verdict-r">❌ Toto neplatí<small>AI porotca: nepatrí do kategórie. Organizátor to môže zmeniť.</small></div>`;
+  if (!j.valid && j.judged) return `<div class="verdict-r">❌ Toto neplatí<small>Nepatrí do kategórie. Ak je to omyl, organizátor to uzná.</small></div>`;
   if (!j.valid) return `<div class="verdict-r">🤔 Túto odpoveď nepoznáme<small>Ak je správna, organizátor ju môže uznať a body sa ti pripočítajú.</small></div>`;
   return `<div class="verdict-r">${esc(j.canon)} · ${TIER_NAME[j.tier]}<small>${TIER_DESC[j.tier]} · ${RUN_TIER_M[j.tier]} m${j.tier === 2 ? ' – výborne!' : ''}</small></div>`;
 }
@@ -400,8 +400,8 @@ function drawPlay() {
     if (error && error.code !== '23505') toast('Odpoveď sa nepodarilo uložiť – skontroluj internet', 3500);
     playRes = runJudge(pi, ans);
     if (!playRes.valid && !playRes.blank && !playRes.judged) {
-      $('#run').querySelector('.rw').insertAdjacentHTML('beforeend', '<div class="aiwait"><span class="spin"></span>🤖 AI porotca posudzuje odpoveď…</div>');
-      if (await runAI([{ pidx: pi, answer: ans }])) playRes = runJudge(pi, ans);
+      const bt = $('#rDig'); if (bt) bt.classList.add('busy');
+      if (await runAI([{ pidx: pi, answer: ans }], 3000)) playRes = runJudge(pi, ans);
     }
     if (navigator.vibrate) navigator.vibrate(playRes.valid ? (playRes.tier === 2 ? [30, 40, 30, 40, 60] : 30) : [60, 40, 60]);
     drawPlay();
@@ -556,7 +556,7 @@ async function hostSet(patch) {
       await runLoadExtra();
       const rows = await runFetch(q => q.eq('round', runState.round).eq('q', runState.q));
       const n = rows.filter(x => { const j = runJudge(pidxOf(x.round, x.q), x.answer); return !j.valid && !j.blank && !j.judged; }).length;
-      if (n) { toast('🤖 AI posudzuje ' + n + ' odpovedí…', 4000); await runAIRows(rows); }
+      if (n) await runAIRows(rows);
     } catch (_) {}
   }
   const { error } = await sb.from('erasmus_run_state').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);

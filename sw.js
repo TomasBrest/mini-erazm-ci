@@ -1,5 +1,5 @@
 // SvF Future – offline cache a push notifikácie
-const VERSION = 'svf-future-v21';
+const VERSION = 'svf-future-v22';
 const SHELL = ['./', './index.html', './manifest.json', './run.css', './run.js', './run-prompts.js', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon.png',
   './img/hero.jpg', './img/p-psa.jpg', './img/p-ikds.jpg', './img/p-vsvh.jpg', './img/p-geo.jpg', './img/p-kraj.jpg', './img/p-mpm.jpg', './img/p-tms.jpg', './img/p-civil.jpg',
   './img/l-zs2.jpg', './img/l-sport2.jpg', './img/l-erasmus.jpg', './img/l-lab.jpg', './img/l-prax.jpg', './img/l-priestory.jpg',

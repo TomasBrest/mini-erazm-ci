@@ -169,3 +169,4 @@
 .aiwait{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;padding:12px;border-radius:14px;background:rgba(255,196,0,.1);color:#FFC400;font-weight:700}
 .aiwait .spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,196,0,.3);border-top-color:#FFC400;animation:aispin .8s linear infinite}
 @keyframes aispin{to{transform:rotate(360deg)}}
+.rbtn.busy{opacity:.6;pointer-events:none}
