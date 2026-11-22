@@ -445,65 +445,95 @@ const DORMS = [
 ];
 const QUIZ = [
   { q: 'Akú misiu by si si vybral/a?', o: [
-    { t: 'Navrhnúť budovu', s: { psa: 3 } }, { t: 'Postaviť most', s: { ikds: 3 } },
-    { t: 'Ochrániť mesto pred vodou', s: { vsvh: 3 } }, { t: 'Vytvoriť digitálny model', s: { mpm: 3 } }] },
-  { q: 'Ktorý projekt by ťa bavil?', o: [
-    { t: 'Postaviť mrakodrap', s: { psa: 2, tms: 1 } }, { t: 'Navrhnúť nový tunel', s: { ikds: 3 } },
-    { t: 'Vytvoriť digitálnu mapu mesta', s: { geo: 3 } }, { t: 'Zachrániť mesto pred suchom a horúčavou', s: { kraj: 3 } }] },
+    { t: 'Navrhnúť budovu, v ktorej sa dobre žije', s: { psa: 3 } }, { t: 'Postaviť most cez hlboké údolie', s: { ikds: 3 } },
+    { t: 'Ochrániť mesto pred povodňou', s: { vsvh: 3 } }, { t: 'Zmerať a zmapovať celé mesto dronom', s: { geo: 3 } }] },
+  { q: 'Ktorý projekt by ťa bavil najviac?', o: [
+    { t: 'Zelený park namiesto parkoviska', s: { kraj: 3 } }, { t: 'Simulácia, ako sa zrúti most pri zemetrasení', s: { mpm: 3 } },
+    { t: 'Viesť stavbu nemocnice od výkopu po otvorenie', s: { tms: 3 } }, { t: 'Rekonštrukcia starej fabriky na lofty', s: { psa: 3 } }] },
   { q: 'Kde by si chcel/a pracovať?', o: [
-    { t: 'Na stavbe v teréne', s: { tms: 3, geo: 1 } }, { t: 'V kancelárii pri návrhu a výpočtoch', s: { ikds: 2, psa: 1 } },
-    { t: 'V laboratóriu na výskume', s: { mpm: 2, vsvh: 1 } }, { t: 'V zahraničí', s: { civil: 3 } }] },
+    { t: 'Na stavbe, kde sa veci hýbu', s: { tms: 3 } }, { t: 'V teréne s GPS a dronom', s: { geo: 3 } },
+    { t: 'Pri rieke alebo na priehrade', s: { vsvh: 3 } }, { t: 'Pri počítači s kódom a modelmi', s: { mpm: 3 } }] },
   { q: 'Čo ťa v škole baví najviac?', o: [
-    { t: 'Kreslenie a dizajn', d: 'výtvarka, technické kreslenie', s: { psa: 3 } }, { t: 'Fyzika a počítanie', d: 'keď to celé dáva zmysel', s: { ikds: 2, tms: 1 } },
-    { t: 'Biológia a geografia', d: 'príroda, krajina, mapy', s: { kraj: 2, vsvh: 1, geo: 1 } }, { t: 'Informatika a matika', d: 'programovanie, logika', s: { mpm: 3, geo: 1 } }] },
+    { t: 'Kreslenie a výtvarka', s: { psa: 3 } }, { t: 'Fyzika – sily a pohyb', s: { ikds: 3 } },
+    { t: 'Geografia a príroda', s: { kraj: 3 } }, { t: 'Informatika a programovanie', s: { mpm: 3 } }] },
   { q: 'Ideálny letný deň?', o: [
-    { t: 'S prístrojom v teréne', d: 'dron, GPS, merania', s: { geo: 3 } }, { t: 'Šéfujem partii na stavbe', d: 'všetko klape podľa plánu', s: { tms: 3 } },
-    { t: 'Niekde pri rieke', d: 'voda, príroda, pokoj', s: { vsvh: 2, kraj: 2 } }, { t: 'Nové mesto, noví ľudia', d: 'cestovanie a jazyky', s: { civil: 3 } }] },
-  { q: 'Ktorý predmet by si si vybral/a navyše?', o: [
-    { t: 'Dejiny architektúry', s: { psa: 3 } }, { t: 'Programovanie', s: { mpm: 3 } },
-    { t: 'Ekológia krajiny', s: { kraj: 3 } }, { t: 'Manažment a ekonomika', s: { tms: 3 } }] },
+    { t: 'S prístrojom v horách, meriam terén', s: { geo: 3 } }, { t: 'Šéfujem partii, všetko klape podľa plánu', s: { tms: 3 } },
+    { t: 'Pri vode – kanoe, rieka, jazero', s: { vsvh: 3 } }, { t: 'Sadím stromy a navrhujem záhradu', s: { kraj: 3 } }] },
+  { q: 'Ktorý predmet by si si zapísal/a navyše?', o: [
+    { t: 'Dejiny architektúry', s: { psa: 3 } }, { t: 'Numerické metódy', s: { mpm: 3 } },
+    { t: 'Dopravné stavby a diaľnice', s: { ikds: 3 } }, { t: 'Manažment a ekonomika stavieb', s: { tms: 3 } }] },
   { q: 'Čo by si chcel/a mať na pracovnom stole?', o: [
-    { t: 'Skicár a ceruzky', s: { psa: 3 } }, { t: 'Dva monitory plné kódu', s: { mpm: 3 } },
-    { t: 'Mapy a GPS prijímač', s: { geo: 3 } }, { t: 'Rozpočet a harmonogram stavby', s: { tms: 3 } }] },
+    { t: 'Skicár, model z kartónu a ceruzky', s: { psa: 3 } }, { t: 'Dva monitory plné kódu', s: { mpm: 3 } },
+    { t: 'Mapy, GPS prijímač a totálnu stanicu', s: { geo: 3 } }, { t: 'Mapu povodia s prietokmi riek', s: { vsvh: 3 } }] },
   { q: 'Ktorá stavba ťa fascinuje najviac?', o: [
     { t: 'Sagrada Família', d: 'Barcelona', s: { psa: 3 } }, { t: 'Golden Gate', d: 'San Francisco', s: { ikds: 3 } },
-    { t: 'Vodné dielo Gabčíkovo', d: 'Slovensko', s: { vsvh: 3 } }, { t: 'Central Park', d: 'New York', s: { kraj: 3 } }] },
+    { t: 'Vodné dielo Gabčíkovo', d: 'Slovensko', s: { vsvh: 3 } }, { t: 'High Line', d: 'park na starej železnici v New Yorku', s: { kraj: 3 } }] },
   { q: 'Ako riešiš problém?', o: [
-    { t: 'Nakreslím si ho', s: { psa: 2, kraj: 1 } }, { t: 'Prepočítam ho', s: { ikds: 2, mpm: 1 } },
-    { t: 'Napíšem si na to program', s: { mpm: 3 } }, { t: 'Zorganizujem ľudí okolo seba', s: { tms: 3 } }] },
+    { t: 'Nakreslím si ho', s: { psa: 3 } }, { t: 'Napíšem si na to program', s: { mpm: 3 } },
+    { t: 'Zorganizujem ľudí okolo seba', s: { tms: 3 } }, { t: 'Najprv si všetko presne zmeriam', s: { geo: 3 } }] },
   { q: 'V tíme si skôr…', o: [
-    { t: 'Dizajnér s nápadmi', s: { psa: 3 } }, { t: 'Ten, čo všetko prepočíta', s: { ikds: 2, mpm: 1 } },
-    { t: 'Líder, čo to dotiahne', s: { tms: 3 } }, { t: 'Ten, čo sa dohovorí s celým svetom', s: { civil: 3 } }] },
+    { t: 'Ten, čo prepočíta, či to vydrží', s: { ikds: 3 } }, { t: 'Líder, čo to dotiahne do termínu', s: { tms: 3 } },
+    { t: 'Ten, čo myslí na prírodu a okolie', s: { kraj: 3 } }, { t: 'Ten, čo vymyslí, ako to bude vyzerať', s: { psa: 3 } }] },
   { q: 'Čo ťa na budove zaujíma najviac?', o: [
-    { t: 'Ako vyzerá', s: { psa: 3 } }, { t: 'Prečo nespadne', s: { ikds: 3 } },
-    { t: 'Kde presne stojí', s: { geo: 3 } }, { t: 'Čo je okolo nej', s: { kraj: 3 } }] },
+    { t: 'Ako vyzerá a ako sa v nej žije', s: { psa: 3 } }, { t: 'Prečo nespadne', s: { ikds: 3 } },
+    { t: 'Kde presne stojí a aký má tvar terénu', s: { geo: 3 } }, { t: 'Čo je okolo nej – zeleň, ľudia, krajina', s: { kraj: 3 } }] },
   { q: 'Ktorá téma je pre teba najdôležitejšia?', o: [
-    { t: 'Klimatická zmena', s: { kraj: 2, vsvh: 1 } }, { t: 'Doprava a mobilita', s: { ikds: 3 } },
-    { t: 'Bývanie pre ľudí', s: { psa: 2, tms: 1 } }, { t: 'Digitalizácia a umelá inteligencia', s: { mpm: 2, geo: 1 } }] },
+    { t: 'Klimatická zmena a horúčavy v meste', s: { kraj: 3 } }, { t: 'Doprava a zápchy', s: { ikds: 3 } },
+    { t: 'Sucho a nedostatok vody', s: { vsvh: 3 } }, { t: 'Umelá inteligencia a digitalizácia', s: { mpm: 3 } }] },
   { q: 'Ktorý gadget by si si kúpil/a?', o: [
-    { t: 'Dron', s: { geo: 3 } }, { t: '3D tlačiareň', s: { psa: 2, mpm: 1 } },
-    { t: 'VR okuliare', s: { mpm: 2, psa: 1 } }, { t: 'Laserový diaľkomer', s: { tms: 2, geo: 1 } }] },
+    { t: 'Dron s kamerou', s: { geo: 3 } }, { t: 'Výkonný notebook na simulácie', s: { mpm: 3 } },
+    { t: 'Laserový diaľkomer a plánovací kalendár', s: { tms: 3 } }, { t: 'Meteostanica so zrážkomerom', s: { vsvh: 3 } }] },
   { q: 'Voda ťa…', o: [
-    { t: 'Fascinuje – rieky, priehrady, povodne', s: { vsvh: 3 } }, { t: 'Upokojuje – jazierka, parky', s: { kraj: 2, vsvh: 1 } },
-    { t: 'Zaujíma, ako sa dostane do domu', s: { vsvh: 2, tms: 1 } }, { t: 'Veľmi nezaujíma', s: { psa: 1, mpm: 1, ikds: 1 } }] },
-  { q: 'Čo hovoríš na angličtinu?', o: [
-    { t: 'Milujem ju, pokojne celé štúdium', s: { civil: 3 } }, { t: 'Chcem ísť na Erasmus', s: { civil: 2 } },
-    { t: 'Pohoda, ale radšej po slovensky', s: { tms: 1, psa: 1 } }, { t: 'Radšej čísla než slovíčka', s: { mpm: 1, ikds: 1 } }] },
+    { t: 'Fascinuje – rieky, priehrady, povodne', s: { vsvh: 3 } }, { t: 'Upokojuje – jazierka a parky', s: { kraj: 3 } },
+    { t: 'Zaujíma, ako ju dostať pod cestu', d: 'priepusty, mosty', s: { ikds: 3 } }, { t: 'Baví ako pohyb, ktorý sa dá vypočítať', s: { mpm: 3 } }] },
   { q: 'Čo by si postavil/a ako prvé?', o: [
-    { t: 'Rodinný dom', s: { psa: 3 } }, { t: 'Most cez rieku', s: { ikds: 2, vsvh: 1 } },
-    { t: 'Park v meste', s: { kraj: 3 } }, { t: 'Celé nové sídlisko', s: { tms: 2, psa: 1 } }] },
+    { t: 'Rodinný dom podľa vlastného návrhu', s: { psa: 3 } }, { t: 'Most cez rieku', s: { ikds: 3 } },
+    { t: 'Park s jazierkom', s: { kraj: 3 } }, { t: 'Celé nové sídlisko – a uriadiť to', s: { tms: 3 } }] },
   { q: 'Ktorý deň by ťa bavil?', o: [
-    { t: 'Noc nad výkresom a modelom', s: { psa: 2 } }, { t: 'Hodiny s dátami a grafmi', s: { mpm: 2, geo: 1 } },
-    { t: 'Deň v prírode s meraním', s: { geo: 2, kraj: 1 } }, { t: 'Porady, telefonáty a obhliadka stavby', s: { tms: 3 } }] },
+    { t: 'Noc nad výkresom a modelom', s: { psa: 3 } }, { t: 'Hodiny s dátami a grafmi', s: { mpm: 3 } },
+    { t: 'Deň v prírode s meraním', s: { geo: 3 } }, { t: 'Porady, telefonáty a obhliadka stavby', s: { tms: 3 } }] },
   { q: 'Čo by ťa najviac potešilo?', o: [
-    { t: 'Vidieť postavený dom podľa môjho návrhu', s: { psa: 3 } }, { t: 'Most, ktorý vydrží sto rokov', s: { ikds: 3 } },
-    { t: 'Mesto, ktoré už nezaplavuje', s: { vsvh: 3 } }, { t: 'Projekt hotový v termíne aj v rozpočte', s: { tms: 3 } }] },
-  { q: 'Mapy pre teba sú…', o: [
-    { t: 'Moja vášeň – rád/rada by som ich tvoril/a', s: { geo: 3 } }, { t: 'Plánujem v nich trasy a cesty', s: { ikds: 2, geo: 1 } },
-    { t: 'Hľadám v nich prírodu', s: { kraj: 2 } }, { t: 'Stačí mi navigácia v mobile', s: { psa: 1, tms: 1 } }] },
-  { q: 'Kde sa vidíš o 10 rokov?', o: [
-    { t: 'Vo vlastnom ateliéri', s: { psa: 3 } }, { t: 'Vo veľkej stavebnej firme', s: { tms: 3 } },
-    { t: 'Vo výskume a vývoji', s: { mpm: 2, vsvh: 1 } }, { t: 'V medzinárodnej firme v zahraničí', s: { civil: 3 } }] }
+    { t: 'Most, ktorý vydrží sto rokov', s: { ikds: 3 } }, { t: 'Mesto, ktoré už nezaplavuje', s: { vsvh: 3 } },
+    { t: 'Presná mapa, podľa ktorej sa stavia', s: { geo: 3 } }, { t: 'Projekt hotový v termíne aj v rozpočte', s: { tms: 3 } }] },
+  { q: 'Ktorú appku by si rád/a používal/a v práci?', o: [
+    { t: 'Revit alebo ArchiCAD', d: '3D model budovy', s: { psa: 3 } }, { t: 'QGIS alebo ArcGIS', d: 'mapy a priestorové dáta', s: { geo: 3 } },
+    { t: 'Python a MATLAB', s: { mpm: 3 } }, { t: 'Harmonogram a rozpočet stavby', s: { tms: 3 } }] },
+  { q: 'Čo by si rád/a vedel/a vypočítať?', o: [
+    { t: 'Koľko unesie strop', s: { ikds: 3 } }, { t: 'Koľko vody pretečie riekou pri povodni', s: { vsvh: 3 } },
+    { t: 'Koľko bude stavba stáť', s: { tms: 3 } }, { t: 'Ako sa šíri teplo v meste počas leta', s: { mpm: 3 } }] },
+  { q: 'Čo ťa v meste najviac štve?', o: [
+    { t: 'Škaredé budovy', s: { psa: 3 } }, { t: 'Rozbité cesty a zápchy', s: { ikds: 3 } },
+    { t: 'Betón namiesto stromov', s: { kraj: 3 } }, { t: 'Zaplavené podchody po búrke', s: { vsvh: 3 } }] },
+  { q: 'Ktorú prácu na stavbe by si si vybral/a?', o: [
+    { t: 'Vytyčovať budovu presne na milimeter', s: { geo: 3 } }, { t: 'Riadiť celú stavbu', s: { tms: 3 } },
+    { t: 'Kontrolovať, či sedí statika mosta', s: { ikds: 3 } }, { t: 'Navrhnúť sadové úpravy okolo', s: { kraj: 3 } }] },
+  { q: 'Čo by si chcel/a preskúmať?', o: [
+    { t: 'Ako navrhnúť dom bez energie navyše', s: { psa: 3 } }, { t: 'Ako umelá inteligencia navrhne konštrukciu', s: { mpm: 3 } },
+    { t: 'Ako sa mení koryto rieky', s: { vsvh: 3 } }, { t: 'Ako sa pohybujú zemské dosky – pomocou GPS', s: { geo: 3 } }] },
+  { q: 'Čo by si urobil/a s opusteným pozemkom?', o: [
+    { t: 'Komunitnú záhradu a park', s: { kraj: 3 } }, { t: 'Moderné bývanie', s: { psa: 3 } },
+    { t: 'Retenčnú nádrž na dažďovú vodu', s: { vsvh: 3 } }, { t: 'Zorganizujem výstavbu a nájdem investora', s: { tms: 3 } }] },
+  { q: 'Ktorá exkurzia by ťa lákala?', o: [
+    { t: 'Do tunela počas razenia', s: { ikds: 3 } }, { t: 'Do superpočítačového centra', s: { mpm: 3 } },
+    { t: 'Na geodetické meranie v Tatrách', s: { geo: 3 } }, { t: 'Do chránenej krajinnej oblasti', s: { kraj: 3 } }] },
+  { q: 'Čo ti ide najlepšie?', o: [
+    { t: 'Priestorová predstavivosť', s: { psa: 3 } }, { t: 'Logika a algoritmy', s: { mpm: 3 } },
+    { t: 'Komunikácia a vyjednávanie', s: { tms: 3 } }, { t: 'Presnosť a trpezlivosť', s: { geo: 3 } }] },
+  { q: 'Čo by si rád/a navrhol/a?', o: [
+    { t: 'Diaľničnú križovatku', s: { ikds: 3 } }, { t: 'Čistiareň odpadových vôd', s: { vsvh: 3 } },
+    { t: 'Zelenú strechu a dažďovú záhradu', s: { kraj: 3 } }, { t: 'Digitálne dvojča mesta', s: { mpm: 3 } }] },
+  { q: 'Ako by si chcel/a pomôcť svetu?', o: [
+    { t: 'Dostupným bývaním pre ľudí', s: { psa: 3 } }, { t: 'Bezpečnými cestami a mostami', s: { ikds: 3 } },
+    { t: 'Čistou vodou pre každého', s: { vsvh: 3 } }, { t: 'Presnými mapami pre krízové situácie', s: { geo: 3 } }] },
+  { q: 'Tvoja vysnívaná pozícia o 10 rokov?', o: [
+    { t: 'Riaditeľ/ka veľkej stavebnej firmy', s: { tms: 3 } }, { t: 'Krajinný architekt/ka miest', s: { kraj: 3 } },
+    { t: 'Vývojár/ka simulačného softvéru', s: { mpm: 3 } }, { t: 'Hlavný/á projektant/ka mostov a tunelov', s: { ikds: 3 } }] },
+  { q: 'Ako to máš s angličtinou?', lang: true, o: [
+    { t: 'Pokojne by som celé štúdium robil/a po anglicky', s: { civil: 3 } }, { t: 'Chcem ísť aspoň na Erasmus', s: { civil: 1 } },
+    { t: 'Zvládnem, ale radšej po slovensky', s: {} }, { t: 'Radšej čísla než slovíčka', s: {} }] },
+  { q: 'S kým by si chcel/a študovať?', lang: true, o: [
+    { t: 'So spolužiakmi z celého sveta', s: { civil: 3 } }, { t: 'Kombinácia – Slováci aj zahraniční', s: { civil: 1 } },
+    { t: 'S partiou zo Slovenska', s: {} }, { t: 'Je mi to jedno, hlavne nech to baví', s: {} }] },
 ];
 const TF = [
   { s: 'Stavebný inžinier pracuje iba na stavbe.', a: false, x: 'Pracuje aj v kancelárii, v laboratóriu, v teréne či pri počítači.' },
@@ -704,7 +734,7 @@ function viewHome() {
   <div class="sec"><div class="sec-h"><h2>Zahraj sa</h2></div>
     ${Date.now() < RUN_HIDE_AFTER ? `<button class="runban" id="runTile"><div class="hz"></div><div class="in"><span class="e">🏃</span><div><b>ERASMUS <em>RUN</em></b><span>Hra naživo na Mini Erasme · spustí ju organizátor</span></div><i>Vstúpiť →</i></div></button>` : ''}
     <div class="play" style="margin-top:10px">
-      <button class="tile a" id="quizTile" style="grid-column:span 2;min-height:120px"><span class="e">🧭</span><div><b>Ktorý odbor je pre teba?</b><br><span>20 otázok · 3 minúty · percentá pre všetkých 8 odborov</span></div></button>
+      <button class="tile a" id="quizTile" style="grid-column:span 2;min-height:120px"><span class="e">🧭</span><div><b>Ktorý odbor je pre teba?</b><br><span>30 otázok · 4 minúty · zhoda so všetkými 7 odbormi + Civil Engineering</span></div></button>
     </div>
     <button class="runban vyk" id="vykTile" style="margin-top:10px"><div class="hz"></div><div class="in"><span class="e">⛏️</span><div><b>VÝ<em>KOP</em></b><span>Denná stavbárska hra · 5 výziev každý deň · rebríček</span></div><i>Hrať →</i></div></button>
   </div>
@@ -822,8 +852,8 @@ function loadIG() {
 function viewPrograms() {
   const last = LS.get('erasmus.quiz', null);
   return `<div class="ph"><div class="kicker">8 bakalárskych programov</div><h1>Nájdi svoj smer</h1><p>Stavby. Voda. Doprava. Krajina. Dáta. Na SvF si nájdeš svoj smer.</p></div>
-  <button class="quizcta" id="quizCta"><div class="kicker">Kvíz · 20 otázok · 3 minúty</div><h2>Ktorý odbor je pre teba? 🧭</h2>
-    <span style="opacity:.85">${last ? 'Naposledy ti vyšlo: <b>' + esc(progOf(last).n) + '</b>' + (LS.get('erasmus.quizPct', null) ? ' (' + LS.get('erasmus.quizPct')[0][1] + ' %)' : '') : '20 otázok a uvidíš percentuálnu zhodu so všetkými 8 odbormi.'}</span>
+  <button class="quizcta" id="quizCta"><div class="kicker">Kvíz · 30 otázok · 4 minúty</div><h2>Ktorý odbor je pre teba? 🧭</h2>
+    <span style="opacity:.85">${last ? 'Naposledy ti vyšlo: <b>' + esc(progOf(last).n) + '</b>' + (LS.get('erasmus.quizPct', null) ? ' (' + LS.get('erasmus.quizPct')[0][1] + ' %)' : '') : '30 otázok a uvidíš percentuálnu zhodu so všetkými 7 odbormi.'}</span>
     <span class="btn or">${last ? 'Skúsiť znova' : 'Spustiť kvíz'} →</span></button>
   <div class="sec"><div class="sec-h"><h2>Študijné programy</h2></div>
     <div class="progs">${PROGS.map(p => `<button class="prog" data-p="${p.k}" style="background-image:url('img/p-${p.k}.jpg')"><span class="e">${p.e}</span><b>${esc(p.n)}</b><span>${esc(p.kw.join(' · '))}</span></button>`).join('')}</div>
@@ -893,17 +923,20 @@ function drawQuiz() {
 }
 function quizMax() {
   const m = {}; PROGS.forEach(p => m[p.k] = 0);
-  QUIZ.forEach(q => PROGS.forEach(p => { m[p.k] += Math.max(0, ...q.o.map(o => o.s[p.k] || 0)); }));
+  QUIZ.filter(q => !q.lang).forEach(q => PROGS.forEach(p => { m[p.k] += Math.max(0, ...q.o.map(o => o.s[p.k] || 0)); }));
   return m;
 }
 function drawResult() {
   const mx = quizMax();
-  const rank = PROGS.map(p => [p.k, Math.round(100 * (qs[p.k] || 0) / (mx[p.k] || 1))]).sort((a, b) => b[1] - a[1]);
+  // Civil Engineering nie je samostatný odbor, ale štúdium v angličtine → ukáže sa ako doplnok
+  const rank = PROGS.filter(p => p.k !== 'civil').map(p => [p.k, Math.round(100 * (qs[p.k] || 0) / (mx[p.k] || 1))]).sort((a, b) => b[1] - a[1]);
+  const wantsEn = (qs.civil || 0) >= 3;
   const top = progOf(rank[0][0]); LS.set('erasmus.quiz', top.k); LS.set('erasmus.quizPct', rank);
   $('#quiz').innerHTML = `<div class="top"><button class="x" id="qx">✕</button><div class="bar"><i style="width:100%"></i></div></div>
     <div class="qwrap res"><div class="kicker">Tvoj výsledok</div>
       <div class="pic" style="background-image:url('img/p-${top.k}.jpg')"><span>${top.e} Zhoda ${rank[0][1]} %</span></div>
       <h2>${esc(top.n)}</h2><p>${esc(top.d)}</p>
+      ${wantsEn ? `<div class="card" style="margin:12px 0;padding:14px 16px;text-align:left"><b>🌍 Chceš študovať po anglicky?</b><p class="muted" style="margin:4px 0 0">Stavebné inžinierstvo sa dá študovať aj v programe <b>Civil Engineering</b> – celé v angličtine so spolužiakmi z celého sveta.</p><button class="btn g full" id="qcivil" style="margin-top:10px">Pozrieť Civil Engineering →</button></div>` : ''}
       <div class="pct">${rank.map(([k, v], i) => { const p = progOf(k); return `<div class="pr ${i === 0 ? 'top' : ''}"><div class="pl"><span>${p.e} ${esc(p.n)}</span><b>${v} %</b></div><div class="pb"><i data-w="${v}"></i></div></div>`; }).join('')}</div>
       <button class="btn or full" id="qprog">Pozrieť program →</button>
       <button class="btn g full" id="qshare" style="margin-top:8px">📤 Poslať kamarátom</button>
@@ -913,6 +946,7 @@ function drawResult() {
   $('#qx').onclick = () => { closeFull('#quiz'); if (tab === 'programs') render(); };
   $('#qagain').onclick = openQuiz;
   $('#qprog').onclick = () => { closeFull('#quiz'); go('programs'); openProgram(top.k); };
+  const qc = $('#qcivil'); if (qc) qc.onclick = () => { closeFull('#quiz'); go('programs'); openProgram('civil'); };
   $('#qshare').onclick = async () => {
     const text = `Podľa kvízu SvF Future mi najviac sedí ${top.e} ${top.n} (${rank[0][1]} %)! Skús aj ty 👉 ${APP_URL}`;
     if (navigator.share) { try { await navigator.share({ text }); } catch (_) {} }

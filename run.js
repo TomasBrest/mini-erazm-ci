@@ -13,13 +13,14 @@ const RUN_URL = APP_URL + '?run';
 const VYK_URL = APP_URL + '?vykop';
 
 let RUN_EXTRA = {};
+let RUN_CANON = {};
 let runState = null;
 let runMine = {};
 let runAll = null;
 let runView = 'home';
 let runMode = 'live'; // 'live' = Erasmus Run naživo, 'daily' = VÝKOP
 const LIVE_ROUND = 1;
-const DAYS = 49; // VÝKOP: deň d = kolo d+1 (výzvy 6–250)
+const DAYS = 130; // VÝKOP: deň d = kolo d+1 (výzvy 5–654), 5 výziev denne
 let runPoll = null, runTick = null;
 let runNick = LS.get('erasmus.run.nick', '');
 let runPid = LS.get('erasmus.run.pid', null);
@@ -65,15 +66,16 @@ function runJudge(pi, ans) {
   if (!n) return { valid: false, blank: true, norm: '' };
   const m = ridx(pi), ex = RUN_EXTRA[pi] || {};
   const ok = v => ({ valid: true, canon: v.canon, tier: v.tier, norm: n });
-  const exOk = (k) => ({ valid: true, canon: raw, tier: ex[k], norm: n, extra: true, key: k });
+  const exOk = (k) => ({ valid: true, canon: (RUN_CANON[pi] && RUN_CANON[pi][k]) || raw, tier: ex[k], norm: n, extra: true, key: k });
+  if (ex[n] === -1) return { valid: false, norm: n, judged: true };
   // 1) presná zhoda (aj bez medzier) alebo uznaná odpoveď
   let h = m.get(n) || m.get(n.replace(/ /g, ''));
   if (h) return ok(h);
-  if (ex[n] != null) return exOk(n);
+  if (ex[n] != null && ex[n] >= 0) return exOk(n);
   // 2) iný tvar slova (betónom = betón, mosty = most)
   const ns = stemPhrase(n);
   for (const [k, v] of m) if (stemPhrase(k) === ns) return ok(v);
-  for (const k in ex) if (stemPhrase(k) === ns) return exOk(k);
+  for (const k in ex) if (ex[k] >= 0 && stemPhrase(k) === ns) return exOk(k);
   // 3) preklepy
   let best = null, bd = 9;
   if (n.length >= 4) for (const [k, v] of m) {
@@ -109,7 +111,7 @@ function runJudge(pi, ans) {
       }
     }
   }
-  for (const k in ex) if (k.length >= 4 && lev(n, k, 1) <= 1) return exOk(k);
+  for (const k in ex) if (ex[k] >= 0 && k.length >= 4 && lev(n, k, 1) <= 1) return exOk(k);
   return { valid: false, norm: n };
 }
 function runScore(rows) {
@@ -147,8 +149,31 @@ async function runFetch(build) {
   return all;
 }
 async function runLoadExtra() {
-  const { data } = await sb.from('erasmus_run_extra').select('pidx,answer_norm,tier');
-  RUN_EXTRA = {}; (data || []).forEach(e => { (RUN_EXTRA[e.pidx] = RUN_EXTRA[e.pidx] || {})[e.answer_norm] = e.tier; });
+  let { data, error } = await sb.from('erasmus_run_extra').select('pidx,answer_norm,tier,canon');
+  if (error) ({ data } = await sb.from('erasmus_run_extra').select('pidx,answer_norm,tier'));
+  RUN_EXTRA = {}; RUN_CANON = {};
+  (data || []).forEach(e => { (RUN_EXTRA[e.pidx] = RUN_EXTRA[e.pidx] || {})[e.answer_norm] = e.tier; if (e.canon) (RUN_CANON[e.pidx] = RUN_CANON[e.pidx] || {})[e.answer_norm] = e.canon; });
+}
+// AI porotca: odpovede, ktoré hra nepozná, posúdi Gemini (cez funkciu erasmus-judge) – každá odpoveď len raz
+async function runAI(items, ms = 9000) {
+  const list = items.filter(x => x && x.answer && rn(x.answer) && !(RUN_EXTRA[x.pidx] && rn(x.answer) in RUN_EXTRA[x.pidx]));
+  if (!list.length) return false;
+  const seen = new Set(), uniq = list.filter(x => { const k = x.pidx + '|' + rn(x.answer); if (seen.has(k)) return false; seen.add(k); return true; })
+    .map(x => ({ pidx: x.pidx, p: (window.RUN_PROMPTS[x.pidx] || {}).p, answer: x.answer }));
+  try {
+    const call = sb.functions.invoke('erasmus-judge', { body: { items: uniq } });
+    const res = await Promise.race([call, new Promise(r => setTimeout(() => r({ error: 'timeout' }), ms))]);
+    const out = res && res.data && res.data.results;
+    if (!out) return false;
+    out.forEach(e => { (RUN_EXTRA[e.pidx] = RUN_EXTRA[e.pidx] || {})[e.norm] = e.tier; if (e.canon) (RUN_CANON[e.pidx] = RUN_CANON[e.pidx] || {})[e.norm] = e.canon; });
+    return true;
+  } catch (_) { return false; }
+}
+// všetky neznáme odpovede v zozname riadkov pošle AI (po dávkach)
+async function runAIRows(rows) {
+  const items = rows.map(x => ({ pidx: pidxOf(x.round, x.q), answer: x.answer })).filter(x => { const j = runJudge(x.pidx, x.answer); return !j.valid && !j.blank && !j.judged; });
+  for (let i = 0; i < items.length; i += 40) await runAI(items.slice(i, i + 40), 15000);
+  return items.length;
 }
 async function runLoadState() {
   const { data } = await sb.from('erasmus_run_state').select('*').eq('id', 1).maybeSingle();
@@ -267,7 +292,7 @@ async function drawHome() {
   const UR = dayRound(U);
   if (!U) {
     today = `<div class="rcard"><div class="crane">🚧</div><h3 style="text-align:center">VÝKOP štartuje už čoskoro</h3>
-      <p style="text-align:center">Každý deň sa ti odomkne nové kolo s 5 výzvami o stavbárstve, škole a stavbách. Zapni si upozornenia, nech ti nič neujde.</p></div>`;
+      <p style="text-align:center">Každý deň sa ti odomkne nové kolo s 5 výzvami zo stavebníctva – 130 dní, 650 výziev. Zapni si upozornenia, nech ti nič neujde.</p></div>`;
   } else {
     const d = mineDone(UR);
     today = d < 5
@@ -276,6 +301,9 @@ async function drawHome() {
       : `<div class="rcard"><div class="kicker" style="color:#FFC400">Dnešné kolo hotové ✅</div><h3>Deň ${U}</h3>
          <p>Ďalšie kolo sa odomkne o <b id="rNext">–</b></p><button class="rbtn alt" id="rSum">Pozrieť výsledky</button></div>`;
   }
+  let streak = 0; for (let dd = U; dd >= 1; dd--) { if (mineDone(dayRound(dd)) >= 5) streak++; else if (dd !== U) break; }
+  const doneDays = Array.from({ length: U }, (_, i) => mineDone(dayRound(i + 1)) >= 5).filter(Boolean).length;
+  if (U) today = `<div class="rstats"><div><b>🔥 ${streak}</b><span>dní v rade</span></div><div><b>${doneDays}/${U}</b><span>odohraných dní</span></div><div><b>${DAYS - U}</b><span>dní do konca</span></div></div>` + today;
   const maxShow = Math.min(DAYS, Math.max(U + 4, 5));
   const grid = U ? `<div class="rcard"><h3>Dni</h3><p>Zmeškané dni si môžeš dohrať kedykoľvek.</p><div class="rounds">${Array.from({ length: maxShow }, (_, i) => {
     const dd = i + 1, r = dayRound(dd), done = mineDone(r) >= 5, lock = dd > U;
@@ -318,10 +346,20 @@ function startRound(r) {
   runView = 'play'; playRes = null; playDeadline = Date.now() + RUN_SECS * 1000; drawRun();
 }
 function digHtml(j, pts) {
-  const pct = j.valid ? [24, 50, 86][j.tier] : 5;
-  return `<div class="dig"><span class="lbl" style="top:2%">Povrch</span><span class="lbl" style="top:33%">Základy</span><span class="lbl" style="top:78%">Skalné podložie</span>
+  const pct = j.valid ? [26, 52, 80][j.tier] : 6;
+  const tc = j.valid ? 't' + j.tier : 'inv';
+  return `<div class="dig ${tc}">
+    <div class="sky"></div><div class="grass"></div>
+    <div class="ruler">${[0, 5, 10, 15, 20].map((m, i) => `<span style="top:${8 + i * 21}%">${m ? '−' + m : '0'} m</span>`).join('')}</div>
+    <span class="lbl" style="top:9%">Ornica</span><span class="lbl" style="top:31%">Íl · Základy</span><span class="lbl" style="top:56%">Štrk</span><span class="lbl" style="top:80%">Skalné podložie</span>
     <div class="shaft" data-h="${pct}"></div><div class="bit" data-t="${pct}">${j.valid ? (j.tier === 2 ? '💎' : '⛏️') : '🤷'}</div>
+    ${j.valid ? `<div class="burst" style="top:${pct}%">${'<i></i>'.repeat(8)}</div>` : ''}
     <div class="m">${j.valid ? '−' + pts + ' m' : '0 m'}</div></div>`;
+}
+// vrtné jadro: 5 odpovedí dňa ako vzorka horniny
+function coreHtml(my) {
+  const tot = my.reduce((a, x) => a + x._pts, 0) || 1;
+  return `<div class="core"><div class="core-in">${my.map(x => `<div class="seg ${x._j.valid ? 't' + x._j.tier : 'inv'}" style="flex:${Math.max(x._pts, 2)}"><span>${x._j.valid ? esc(x._j.canon) : '—'}</span><b>${x._pts} m</b></div>`).join('')}</div><div class="core-cap">VRTNÉ JADRO DŇA</div></div>`;
 }
 function animateDig() {
   requestAnimationFrame(() => setTimeout(() => {
@@ -331,6 +369,7 @@ function animateDig() {
 }
 function verdictHtml(j) {
   if (j.blank) return `<div class="verdict-r">⏰ Čas vypršal<small>Za túto výzvu 0 m.</small></div>`;
+  if (!j.valid && j.judged) return `<div class="verdict-r">❌ Toto neplatí<small>AI porotca: nepatrí do kategórie. Organizátor to môže zmeniť.</small></div>`;
   if (!j.valid) return `<div class="verdict-r">🤔 Túto odpoveď nepoznáme<small>Ak je správna, organizátor ju môže uznať a body sa ti pripočítajú.</small></div>`;
   return `<div class="verdict-r">${esc(j.canon)} · ${TIER_NAME[j.tier]}<small>${TIER_DESC[j.tier]} · ${RUN_TIER_M[j.tier]} m${j.tier === 2 ? ' – výborne!' : ''}</small></div>`;
 }
@@ -360,6 +399,10 @@ function drawPlay() {
     const { error } = await sb.from('erasmus_run_answers').insert({ round: r, q, player_id: runPid, nickname: runNick, answer: ans });
     if (error && error.code !== '23505') toast('Odpoveď sa nepodarilo uložiť – skontroluj internet', 3500);
     playRes = runJudge(pi, ans);
+    if (!playRes.valid && !playRes.blank && !playRes.judged) {
+      $('#run').querySelector('.rw').insertAdjacentHTML('beforeend', '<div class="aiwait"><span class="spin"></span>🤖 AI porotca posudzuje odpoveď…</div>');
+      if (await runAI([{ pidx: pi, answer: ans }])) playRes = runJudge(pi, ans);
+    }
     if (navigator.vibrate) navigator.vibrate(playRes.valid ? (playRes.tier === 2 ? [30, 40, 30, 40, 60] : 30) : [60, 40, 60]);
     drawPlay();
   };
@@ -379,7 +422,7 @@ async function drawSum() {
   const r = sumRound;
   $('#run').innerHTML = `<div class="rw">${rhead()}<div class="crane">🏗️</div><p style="text-align:center;opacity:.7">Počítam hĺbku…</p></div>`; bindHead();
   let rows = [];
-  try { await runLoadExtra(); rows = await runFetch(q => q.eq('round', r)); } catch (_) {}
+  try { await runLoadExtra(); rows = await runFetch(q => q.eq('round', r)); await runAIRows(rows.filter(x => x.player_id === runPid)); } catch (_) {}
   const mine = rows.filter(x => x.player_id === runPid);
   if (!mine.length) Object.entries(runMine[r] || {}).forEach(([q, a]) => rows.push({ round: r, q: +q, player_id: runPid, nickname: runNick, answer: a }));
   const board = runScore(rows);
@@ -391,6 +434,7 @@ async function drawSum() {
     <div class="rcard" style="text-align:center"><div class="kicker" style="color:#FFC400">Deň ${roundDay(r)} · výsledok</div>
       <div class="bigm">${total} m</div><p>${place ? `${place}. miesto z ${board.length}` : ''}</p>
       <div style="font-size:26px;margin-top:8px;letter-spacing:4px">${sq}</div>
+      ${coreHtml(my)}
       <button class="rbtn" id="rShare">📤 Zdieľať výsledok</button></div>
     <div class="rcard">${my.map(x => `<div class="sumrow"><span class="sq ${x._j.valid ? 't' + x._j.tier : 'inv'}">${x._j.valid ? (x._uni ? '⭐' : TIER_SQ[x._j.tier]) : '✕'}</span>
       <div class="tx"><span>${esc(promptOf(r, x.q))}</span><b>${esc(x.answer || '— (čas vypršal)')}</b></div><em>${x._pts} m</em></div>`).join('')}</div>
@@ -507,6 +551,14 @@ async function hostRefresh() {
   } catch (_) {}
 }
 async function hostSet(patch) {
+  if (patch.status === 'reveal' && runState) {
+    try {
+      await runLoadExtra();
+      const rows = await runFetch(q => q.eq('round', runState.round).eq('q', runState.q));
+      const n = rows.filter(x => { const j = runJudge(pidxOf(x.round, x.q), x.answer); return !j.valid && !j.blank && !j.judged; }).length;
+      if (n) { toast('🤖 AI posudzuje ' + n + ' odpovedí…', 4000); await runAIRows(rows); }
+    } catch (_) {}
+  }
   const { error } = await sb.from('erasmus_run_state').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);
   if (error) return toast('Chyba: ' + error.message, 4000);
   Object.assign(runState, patch); await hostRefresh(); drawHost();
@@ -611,7 +663,7 @@ async function runAdminHtml() {
   let rows = []; try { rows = await runFetch(); } catch (_) {}
   runScore(rows);
   const unk = {};
-  rows.forEach(x => { if (x._j.valid || x._j.blank) return; const pi = pidxOf(x.round, x.q), k = pi + '|' + x._j.norm; (unk[k] = unk[k] || { pi, norm: x._j.norm, text: x.answer, n: 0, live: x.round === LIVE_ROUND }).n++; });
+  rows.forEach(x => { if (x._j.valid || x._j.blank) return; const pi = pidxOf(x.round, x.q), k = pi + '|' + x._j.norm; (unk[k] = unk[k] || { pi, norm: x._j.norm, text: x.answer, n: 0, live: x.round === LIVE_ROUND, ai: !!x._j.judged }).n++; });
   const list = Object.values(unk).sort((a, b) => b.n - a.n).slice(0, 80);
   const live = rows.filter(x => x.round === LIVE_ROUND), daily = rows.filter(x => x.round !== LIVE_ROUND);
   const st = runState || {};
@@ -627,8 +679,9 @@ async function runAdminHtml() {
     <div class="two" style="margin-top:10px"><div><button class="btn ink full" id="rsSave">Uložiť dátum štartu</button></div><div><button class="btn line full" id="rsWipeVyk">🧪 Vymazať test VÝKOPU</button></div></div>
     <p class="muted" style="font-size:12px;margin-top:8px">Tip na test: nastav dátum na pár dní dozadu – odomkne sa toľko dní, koľko dní ubehlo. Po teste daj „Vymazať test VÝKOPU“ a nastav skutočný dátum štartu.</p>
     <h2 style="margin-top:26px;font-size:22px">Neuznané odpovede (${list.length})</h2>
+    ${list.some(u => !u.ai) ? `<button class="btn or full" id="rsAI" style="margin:8px 0">🤖 Nechať AI posúdiť ${list.filter(u => !u.ai).length} neznámych</button>` : ''}
     <p class="muted" style="font-size:13px">Odpovede, ktoré hra nepoznala. Ak sú správne, uznaj ich – body sa všetkým prepočítajú.</p>
-    ${list.map(u => `<div class="card qcard"><div class="t">${esc(window.RUN_PROMPTS[u.pi].p)} · ${u.live ? 'Erasmus Run' : 'VÝKOP deň ' + (Math.floor(u.pi / 5))}</div><div class="q" style="font-size:17px;margin-top:4px">„${esc(u.text)}“ ${u.n > 1 ? `<span class="muted">×${u.n}</span>` : ''}</div>
+    ${list.map(u => `<div class="card qcard"><div class="t">${esc(window.RUN_PROMPTS[u.pi].p)} · ${u.live ? 'Erasmus Run' : 'VÝKOP deň ' + (Math.floor(u.pi / 5))}</div><div class="q" style="font-size:17px;margin-top:4px">„${esc(u.text)}“ ${u.n > 1 ? `<span class="muted">×${u.n}</span>` : ''}${u.ai ? ' <span class="muted" style="font-size:12px">· AI zamietla</span>' : ''}</div>
       <div class="two" style="margin-top:8px"><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|0">✓ Bežná</button></div><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|1">✓ Menej známa</button></div><div><button class="btn line full" data-ux="${u.pi}|${esc(u.norm)}|2">💎 Vzácna</button></div></div></div>`).join('') || '<p class="muted">Všetko je vyhodnotené 👍</p>'}
     <button class="btn danger full" id="rsWipe" style="margin-top:28px">🗑 Vymazať všetky odpovede (obe hry)</button>`;
 }
@@ -636,6 +689,7 @@ function runAdminBind() {
   const on = (id, fn) => { const e = $(id); if (e) e.onclick = fn; };
   on('#rsSave', async () => { const d = $('#rsD').value; const { error } = await sb.from('erasmus_run_state').update({ start_date: d || null, updated_at: new Date().toISOString() }).eq('id', 1); toast(error ? 'Chyba: ' + error.message : 'Uložené ✅'); admPanel(); });
   on('#rsHost', openHost);
+  on('#rsAI', async () => { const b = $('#rsAI'); b.disabled = true; b.textContent = '🤖 AI posudzuje…'; try { await runLoadExtra(); const rows = await runFetch(); const n = await runAIRows(rows); toast(n ? 'Hotovo ✅' : 'Nič na posúdenie'); } catch (e) { toast('Chyba: ' + (e.message || e), 4000); } admPanel(); });
   on('#rsWipeVyk', async () => {
     if (!confirm('Vymazať všetky odpovede VÝKOPU (napr. po teste)?')) return;
     await sb.from('erasmus_run_answers').delete().gte('round', 2);
